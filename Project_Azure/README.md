@@ -9,8 +9,8 @@ All teams, players, and events are synthetic (made up). No real match data or fo
 
 | Stage | Status | What it does |
 |---|---|---|
-| 1. Ingest | in progress | `src/generate_match.py` creates a synthetic match as a stream of events |
-| 2. Interpret | planned | Turn events into stats (possession, pass accuracy, xG, pressure) |
+| 1. Ingest | done | `src/generate_match.py` creates a synthetic match as a stream of events |
+| 2. Interpret | done | `src/interpret.py` turns events into team stats, player stats, a timeline, and key moments (DuckDB SQL) |
 | 3. Explain | planned | AI explains why key moments matter, with a grounding check on every number |
 | 4. Render | planned | On-screen timeline and insight cards |
 | 5. Personalize | planned | Fan or analyst mode, favorite team or player, English or Thai |
@@ -18,7 +18,10 @@ All teams, players, and events are synthetic (made up). No real match data or fo
 ## Quick start
 
 ```
+pip install -r requirements.txt
 python src/generate_match.py --seed 7
+python src/interpret.py --match data/match_007.jsonl
+python src/interpret.py --match data/match_007.jsonl --minute 60   # live view at 60'
 ```
 
 Creates `data/match_007.jsonl`, one event per line, for example:
