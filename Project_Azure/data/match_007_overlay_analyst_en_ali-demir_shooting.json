@@ -1,0 +1,271 @@
+{
+  "profile": {
+    "mode": "analyst",
+    "language": "en",
+    "favorite_team": null,
+    "favorite_player": "Ali Demir",
+    "focus": "shooting"
+  },
+  "match": {
+    "match_id": "M007",
+    "home_team": "Chao Phraya Rovers",
+    "away_team": "Harbour Lights FC",
+    "venue": "Riverside Arena (fictional)",
+    "competition": "Synthetic League",
+    "minute": 90,
+    "score_home": 5,
+    "score_away": 3,
+    "finished": true
+  },
+  "overlays": [
+    {
+      "t": 85,
+      "show_at": "01:25",
+      "duration_s": 10,
+      "kind": "fastest_shot",
+      "team": "Harbour Lights FC",
+      "player": "Ali Demir",
+      "for_you": true,
+      "headline": "Demir's rocket sets early shooting tone",
+      "text": "Ali Demir’s 119.6 km/h effort (xG 0.17) matters because it turns Harbour Lights’ 59.1% possession into an immediate high-quality chance, demonstrating shot-first intent rather than patient buildup. Tactically this exposes a pattern: only 2 away pressures and an 84.6% pass accuracy show controlled forward momentum against a home side generating 4 pressures, forcing the opponents to raise their defensive intensity to stem shot frequency.",
+      "grounded": true,
+      "cached": true
+    },
+    {
+      "t": 97,
+      "show_at": "01:37",
+      "duration_s": 12,
+      "kind": "great_save",
+      "team": "Chao Phraya Rovers",
+      "player": "Somchai Keeper",
+      "for_you": true,
+      "headline": "Somchai's early denial of Ali Demir",
+      "text": "An early stop on Ali Demir’s 0.172 xG chance — struck at 119.6 km/h — prevents Harbour Lights converting their early territorial edge (59.1% possession) into a lead. The save both preserves a 0-0 state and shifts psychological momentum: Chao Phraya Rovers’ higher pressure count (4 vs 2) can now be leveraged to disrupt Harbour Lights’ rhythm and hunt better shooting opportunities.",
+      "grounded": true,
+      "cached": true
+    },
+    {
+      "t": 196,
+      "show_at": "03:16",
+      "duration_s": 20,
+      "kind": "goal",
+      "team": "Harbour Lights FC",
+      "player": "Ali Demir",
+      "for_you": true,
+      "headline": "Early Bullet: Demir's Clinical Opener",
+      "text": "Ali Demir's 10.7 m strike (xG 0.267) fired at 117.9 km/h is a compact, high-quality shooting event that immediately makes shot quality — not sustained build-up — the decisive factor. It hands Harbour Lights FC the lead while underlining their 0.44 team xG and 59.5% possession so far, forcing Chao Phraya Rovers (6 pressures) to increase intensity and disrupt the away side's control.",
+      "grounded": true,
+      "cached": true
+    },
+    {
+      "t": 288,
+      "show_at": "04:48",
+      "duration_s": 12,
+      "kind": "great_save",
+      "team": "Harbour Lights FC",
+      "player": "Tom Granger",
+      "for_you": true,
+      "headline": "Early save shifts match control",
+      "text": "Tom Granger's great save denies a 0.167 xG chance from Pongsak Meesuk and repels a 58.3 km/h effort, preserving Harbour Lights FC's 0-1 lead. That stop is critical because the away side already leads the underlying pattern (0.44 away xG) while holding 56.5% possession, so preventing an equaliser maintains their control phase despite a slightly more chaotic shot profile.",
+      "grounded": true,
+      "cached": true
+    },
+    {
+      "t": 935,
+      "show_at": "15:35",
+      "duration_s": 20,
+      "kind": "goal",
+      "team": "Chao Phraya Rovers",
+      "player": "Arthit Kaewmanee",
+      "for_you": false,
+      "headline": "Close-range strike restores home control",
+      "text": "Arthit Kaewmanee’s 0.16 xG finish from 8.2 m at 81.0 km/h matters because it converts high-quality shooting into immediate scoreboard parity and punctuates a period where Chao Phraya Rovers registered 100.0% possession in this 15–30 window with 0 pressures allowed. That finish consolidates a team pattern of controlled circulation (54.7% possession overall and 88.6% pass accuracy) and flips momentum by turning dominance into a concrete goal rather than prolonged but sterile possession.",
+      "grounded": true,
+      "cached": true
+    },
+    {
+      "t": 1653,
+      "show_at": "27:33",
+      "duration_s": 12,
+      "kind": "big_chance_missed",
+      "team": "Chao Phraya Rovers",
+      "player": "Chanin Rattana",
+      "for_you": true,
+      "headline": "Missed sitter shifts momentum at 27'",
+      "text": "Chanin Rattana's blocked attempt carried an xG of 0.252 from 6.4 m, a high-quality chance whose non-conversion directly reduces the match's expected-goal yield. With Chao Phraya Rovers sitting on 51.4 possession, 84.7 pass accuracy and 55 pressures, the miss turns sustained control into a wasted opportunity and hands Harbour Lights FC a psychological and transitional edge.",
+      "grounded": true,
+      "cached": true
+    },
+    {
+      "t": 1800,
+      "show_at": "30:00",
+      "duration_s": 15,
+      "kind": "pressing_spell",
+      "team": "Chao Phraya Rovers",
+      "player": null,
+      "for_you": false,
+      "headline": "Rovers' intense press flips midfield control",
+      "text": "Seventeen pressures in five minutes (17) have lifted Chao Phraya Rovers' control from 52.5% possession to a dominant phase, turning the rhythm in their favor while preserving high ball security (84.9% pass accuracy). That surge is tactically crucial because, despite a season xG of 1.13, the team has produced no shot quality in this 30–45 window (home_xg 0.0), and Ali Demir is not involved in this sequence — meaning the press buys time but has yet to convert pressure into the shooting opportunities the viewer values.",
+      "grounded": true,
+      "cached": true
+    },
+    {
+      "t": 1808,
+      "show_at": "30:08",
+      "duration_s": 8,
+      "kind": "yellow_card",
+      "team": "Chao Phraya Rovers",
+      "player": "Anan Wongsa",
+      "for_you": false,
+      "headline": "Yellow card ups defensive caution risk",
+      "text": "At minute 30 Anan Wongsa’s booking forces Chao Phraya Rovers to trade some of their 52.5 possession and 84.9 pass accuracy for caution — Anan already made 9 pressures and 6 ball wins, so his reduced aggression will lower defensive interventions. That shows in the immediate phase: home_pressures are 1 and home_xg is 0.0, meaning the team’s control hasn’t produced shot quality and the card increases the chance Harbour Lights can generate a higher-xG opportunity on transitions.",
+      "grounded": true,
+      "cached": true
+    },
+    {
+      "t": 2370,
+      "show_at": "39:30",
+      "duration_s": 20,
+      "kind": "goal",
+      "team": "Chao Phraya Rovers",
+      "player": "Kittipong Saelim",
+      "for_you": false,
+      "headline": "Clinical finish restores lead for Rovers",
+      "text": "This 39th-minute finish (xG 0.197) from 7.0 m at 89.8 km/h punctures Harbour Lights’ chance buildup and converts high-quality shooting opportunity into a decisive score that shifts momentum. It also rewards Chao Phraya Rovers’ control — 51.4% possession and 85.0% pass accuracy so far — turning sustained control and efficient passing into concrete attacking returns.",
+      "grounded": true,
+      "cached": true
+    },
+    {
+      "t": 3102,
+      "show_at": "51:42",
+      "duration_s": 20,
+      "kind": "goal",
+      "team": "Harbour Lights FC",
+      "player": "Ali Demir",
+      "for_you": true,
+      "headline": "Equaliser from close range shifts momentum",
+      "text": "Ali Demir's 8.0 m finish (xG 0.392, shot speed 58.3 km/h) converts a high-quality opportunity and immediately flips the shot-quality balance in Harbour Lights' favor. That goal forces a tactical response — eroding the visitors' prior rhythm and compelling Chao Phraya to raise pressing intensity and regain control after the score becomes 2-2.",
+      "grounded": true,
+      "cached": true
+    },
+    {
+      "t": 3824,
+      "show_at": "63:44",
+      "duration_s": 20,
+      "kind": "goal",
+      "team": "Chao Phraya Rovers",
+      "player": "Tawan Srisuk",
+      "for_you": false,
+      "headline": "Defender's high-quality close-range finish",
+      "text": "Tawan Srisuk's 0.551 xG strike — a 115.8 km/h shot from 2.1 m — converts a near-inevitable chance and converts sustained pressure into a goal. It underlines Chao Phraya Rovers' control in this phase (53.7% possession, 14 pressures in the 60–75' window), shifting momentum and forcing Harbour Lights to abandon their defensive shape.",
+      "grounded": true,
+      "cached": true
+    },
+    {
+      "t": 4198,
+      "show_at": "69:58",
+      "duration_s": 20,
+      "kind": "goal",
+      "team": "Chao Phraya Rovers",
+      "player": "Surasak Inthong",
+      "for_you": false,
+      "headline": "Clinical finish kills Harbour Lights comeback",
+      "text": "Surasak’s shot carried 0.095 xG from 16.4 m at 107.9 km/h — a compact, high-speed finish converting a low-probability chance. It completes a surge between minute 60 and 75 when Chao Phraya Rovers generated 0.69 xG on 24 pressures with 49.0% possession, showing pressure-driven efficiency that shifts control.",
+      "grounded": true,
+      "cached": false
+    },
+    {
+      "t": 4284,
+      "show_at": "71:24",
+      "duration_s": 20,
+      "kind": "goal",
+      "team": "Harbour Lights FC",
+      "player": "Jay Holt",
+      "for_you": false,
+      "headline": "Holt's close-range blast swings control",
+      "text": "Holt's 0.411 xG strike from 6.3 m at 113.3 km/h converts a high-quality chance and makes it 4-3. From minute 60 to 75 Harbour Lights had 50.3% possession but only 18 pressures, so the finish shifts value from possession into decisive shooting efficiency and interrupts Chao Phraya Rovers' cumulative 146 pressures despite their 25 shots and 2.35 xG.",
+      "grounded": true,
+      "cached": false
+    },
+    {
+      "t": 5245,
+      "show_at": "87:25",
+      "duration_s": 20,
+      "kind": "goal",
+      "team": "Chao Phraya Rovers",
+      "player": "Arthit Kaewmanee",
+      "for_you": false,
+      "headline": "Late killer goal seals control",
+      "text": "Arthit Kaewmanee’s 87th-minute finish (xG 0.165) from 8.1 m at 106.7 km/h turns a one-goal cushion into a two-goal buffer, materially changing closing-phase risk calculus. It also codifies Chao Phraya Rovers’ control — their match xG rises to 2.62 while sustained pressure (57.8% possession in the last 15) and 33 pressures this period show they’ve shifted the game’s momentum from chaos to control.",
+      "grounded": true,
+      "cached": true
+    }
+  ],
+  "player_card": [
+    {
+      "minute": 15,
+      "passes": 8,
+      "pass_accuracy_pct": 75.0,
+      "shots": 2,
+      "xg": 0.44,
+      "goals": 1,
+      "pressures": 1,
+      "ball_wins": 1
+    },
+    {
+      "minute": 30,
+      "passes": 17,
+      "pass_accuracy_pct": 64.7,
+      "shots": 2,
+      "xg": 0.44,
+      "goals": 1,
+      "pressures": 2,
+      "ball_wins": 1
+    },
+    {
+      "minute": 45,
+      "passes": 29,
+      "pass_accuracy_pct": 69.0,
+      "shots": 2,
+      "xg": 0.44,
+      "goals": 1,
+      "pressures": 3,
+      "ball_wins": 1
+    },
+    {
+      "minute": 60,
+      "passes": 36,
+      "pass_accuracy_pct": 72.2,
+      "shots": 3,
+      "xg": 0.83,
+      "goals": 2,
+      "pressures": 4,
+      "ball_wins": 1
+    },
+    {
+      "minute": 75,
+      "passes": 42,
+      "pass_accuracy_pct": 76.2,
+      "shots": 3,
+      "xg": 0.83,
+      "goals": 2,
+      "pressures": 4,
+      "ball_wins": 2
+    },
+    {
+      "minute": 90,
+      "passes": 43,
+      "pass_accuracy_pct": 74.4,
+      "shots": 3,
+      "xg": 0.83,
+      "goals": 2,
+      "pressures": 6,
+      "ball_wins": 4
+    }
+  ],
+  "recap": {
+    "headline": "High-quality shots decided an open thriller",
+    "text": "Chao Phraya Rovers won 5-3 by converting higher-value shooting moments that outpaced raw possession control (xG 2.62 vs 1.38) despite an almost-even 50.6% possession split; sustained pressures (193) and superior pass accuracy (83.0%) created recurrent high-danger chances. Ali Demir’s early finish (xG 0.267) — a 10.7 m, 117.9 km/h strike — set the tone for a shot-driven game where shot quality and speed repeatedly changed momentum.",
+    "grounded": true
+  }
+}
