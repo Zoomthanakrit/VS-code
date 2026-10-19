@@ -82,7 +82,7 @@ SELECT d.team_side, d.team,
        COALESCE(s.xg, 0) AS xg, s.fastest_shot_kmh,
        d.pressures, d.tackles_won, d.interceptions, d.fouls, d.yellow_cards
 FROM defending d
-JOIN passes p USING (team_side)
+LEFT JOIN passes p USING (team_side)
 LEFT JOIN shots s USING (team_side)
 ORDER BY d.team_side DESC  -- home first
 """

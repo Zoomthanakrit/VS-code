@@ -11,7 +11,7 @@ All teams, players, and events are synthetic (made up). No real match data or fo
 |---|---|---|
 | 1. Ingest | done | `src/generate_match.py` creates a synthetic match as a stream of events |
 | 2. Interpret | done | `src/interpret.py` turns events into team stats, player stats, a timeline, and key moments (DuckDB SQL) |
-| 3. Explain | planned | AI explains why key moments matter, with a grounding check on every number |
+| 3. Explain | done | `src/explain.py` asks an Azure AI Foundry model why each key moment matters (fan or analyst, English or Thai). `src/grounding.py` rejects any number the AI did not get from the stats |
 | 4. Render | planned | On-screen timeline and insight cards |
 | 5. Personalize | planned | Fan or analyst mode, favorite team or player, English or Thai |
 
@@ -22,7 +22,18 @@ pip install -r requirements.txt
 python src/generate_match.py --seed 7
 python src/interpret.py --match data/match_007.jsonl
 python src/interpret.py --match data/match_007.jsonl --minute 60   # live view at 60'
+python src/explain.py --match data/match_007.jsonl --mode fan --lang en
+python src/explain.py --match data/match_007.jsonl --mode analyst --lang th
 ```
+
+`explain.py` needs a `.env` file (never committed) with `AZURE_AI_ENDPOINT`, `AZURE_AI_KEY`, `AZURE_AI_DEPLOYMENT`.
+
+## How the AI stays honest
+
+1. SQL computes every number (`interpret.py`).
+2. The AI only gets those numbers, as FACTS.
+3. `grounding.py` checks every number the AI writes. Example: FACTS say xG 0.47; "47% chance" passes, "60% chance" is rejected.
+4. One retry, then the plain headline is shown instead. The screen never shows an invented stat.
 
 Creates `data/match_007.jsonl`, one event per line, for example:
 
