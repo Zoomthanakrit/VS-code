@@ -143,6 +143,8 @@ def cached_answer(client, deployment, key: dict, task: str, facts: dict, fallbac
     path = CACHE_DIR / f"{name}.json"
     if path.exists():
         return {**json.loads(path.read_text(encoding="utf-8")), "cached": True}
+    if client is None:  # no AI connected (no .env): show the plain, fact-based headline
+        return {"headline": fallback, "commentary": "", "grounded": True, "cached": False, "offline": True}
     answer = grounded_answer(client, deployment, task, facts, fallback)
     if answer["grounded"]:  # only keep good answers
         path.write_text(json.dumps(answer, ensure_ascii=False), encoding="utf-8")

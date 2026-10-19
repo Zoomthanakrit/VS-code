@@ -12,7 +12,7 @@ All teams, players, and events are synthetic (made up). No real match data or fo
 | 1. Ingest | done | `src/generate_match.py` creates a synthetic match as a stream of events |
 | 2. Interpret | done | `src/interpret.py` turns events into team stats, player stats, a timeline, and key moments (DuckDB SQL) |
 | 3. Explain | done | `src/explain.py` asks an Azure AI Foundry model why each key moment matters (fan or analyst, English or Thai). `src/grounding.py` rejects any number the AI did not get from the stats |
-| 4. Render | planned | On-screen timeline and insight cards |
+| 4. Render | done | `src/app.py` (FastAPI) + `src/static/`: match replay with a live pitch, live stats, momentum chart, and broadcast-style AI cards that pop up on time |
 | 5. Personalize | done | `src/personalize.py`: fan or analyst, English or Thai, favorite team, favorite player (with a player card), focus metric. Outputs timed overlay JSON |
 
 ## Quick start
@@ -26,6 +26,7 @@ python src/explain.py --match data/match_007.jsonl --mode fan --lang en
 python src/explain.py --match data/match_007.jsonl --mode analyst --lang th
 python src/personalize.py --mode fan --lang th --team rovers
 python src/personalize.py --mode analyst --lang en --player demir --focus shooting
+python src/app.py        # then open http://127.0.0.1:8000
 ```
 
 `explain.py` needs a `.env` file (never committed) with `AZURE_AI_ENDPOINT`, `AZURE_AI_KEY`, `AZURE_AI_DEPLOYMENT`.

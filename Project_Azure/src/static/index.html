@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Match Story</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Match Story <span class="muted" id="aiStatus"></span></div>
+    <div class="scoreboard" aria-live="polite">
+      <span class="team-chip home"></span><span id="homeName">Home</span>
+      <span class="score" id="score">0 - 0</span>
+      <span id="awayName">Away</span><span class="team-chip away"></span>
+      <span class="clock" id="clock">00:00</span>
+    </div>
+    <div class="controls">
+      <button id="playBtn" aria-label="Play">▶</button>
+      <label class="muted"><span data-i18n="speed">Speed</span>
+        <select id="speed">
+          <option value="30">0.5 min/s</option>
+          <option value="60" selected>1 min/s</option>
+          <option value="120">2 min/s</option>
+        </select>
+      </label>
+      <input id="slider" type="range" min="0" max="5460" value="0" aria-label="Match time">
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="stage">
+      <div class="pitch-wrap">
+        <svg id="pitch" viewBox="-2 -2 109 72" role="img" aria-label="Pitch with recent events">
+          <rect x="0" y="0" width="105" height="68" class="pitch-bg"/>
+          <g class="lines">
+            <rect x="0" y="0" width="105" height="68"/>
+            <line x1="52.5" y1="0" x2="52.5" y2="68"/>
+            <circle cx="52.5" cy="34" r="9.15"/>
+            <rect x="0" y="13.84" width="16.5" height="40.32"/>
+            <rect x="88.5" y="13.84" width="16.5" height="40.32"/>
+            <rect x="0" y="24.84" width="5.5" height="18.32"/>
+            <rect x="99.5" y="24.84" width="5.5" height="18.32"/>
+          </g>
+          <g id="eventLayer"></g>
+        </svg>
+        <div class="legend muted">
+          <span><i class="dot home"></i><span id="legHome">Home</span></span>
+          <span><i class="dot away"></i><span id="legAway">Away</span></span>
+          <span data-i18n="legend">line = pass · circle = shot · ring = goal · last 60 seconds</span>
+        </div>
+
+        <div id="card" class="card hidden" role="status" aria-live="assertive">
+          <div class="card-stripe"></div>
+          <div class="card-body">
+            <div class="card-tags">
+              <span class="tag kind" id="cardKind"></span>
+              <span class="tag time" id="cardTime"></span>
+              <span class="tag foryou hidden" id="cardForYou">★ For you</span>
+              <span class="tag check" id="cardCheck"></span>
+            </div>
+            <div class="card-headline" id="cardHeadline"></div>
+            <div class="card-text" id="cardText"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 data-i18n="feed">Story so far</h2>
+        <div id="pending" class="muted hidden" data-i18n="thinking">AI commentator is writing…</div>
+        <ol id="feed" class="feed"></ol>
+        <div id="recap" class="recap hidden">
+          <h3 data-i18n="recap">Match recap</h3>
+          <div class="card-headline" id="recapHeadline"></div>
+          <p id="recapText"></p>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div class="panel">
+        <h2 data-i18n="you">Your view</h2>
+        <div class="form">
+          <label><span data-i18n="mode">Mode</span>
+            <select id="mode"><option value="fan">Fan</option><option value="analyst">Analyst</option></select></label>
+          <label><span data-i18n="language">Language</span>
+            <select id="lang"><option value="en">English</option><option value="th">ไทย (Thai)</option></select></label>
+          <label><span data-i18n="team">Favorite team</span><select id="team"></select></label>
+          <label><span data-i18n="player">Favorite player</span><select id="player"></select></label>
+          <label><span data-i18n="focus">Focus</span>
+            <select id="focus">
+              <option value="">—</option><option value="shooting">Shooting</option>
+              <option value="passing">Passing</option><option value="pressing">Pressing</option>
+              <option value="possession">Possession</option>
+            </select></label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 data-i18n="stats">Match stats</h2>
+        <div id="stats" class="stats"></div>
+      </div>
+
+      <div class="panel">
+        <h2 data-i18n="momentum">Momentum (xG per 15 min)</h2>
+        <div class="chart-wrap">
+          <svg id="momentum" viewBox="0 0 300 140" role="img" aria-label="Expected goals per 15 minutes, home above the line, away below"></svg>
+          <div id="tip" class="tip hidden"></div>
+        </div>
+      </div>
+
+      <div class="panel hidden" id="playerPanel">
+        <h2><span data-i18n="playercard">Player card</span>: <span id="playerName"></span></h2>
+        <table class="ptable">
+          <thead><tr><th>'</th><th data-i18n="passes">Passes</th><th data-i18n="shots">Shots</th><th>xG</th>
+            <th data-i18n="goals">Goals</th><th data-i18n="pressures">Pressures</th></tr></thead>
+          <tbody id="playerRows"></tbody>
+        </table>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="muted foot">
+    All teams, players and events are synthetic. Every number in an AI card is checked against the match stats
+    (✓ fact-checked).
+  </footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>

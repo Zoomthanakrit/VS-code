@@ -1,0 +1,335 @@
+// Match Story - replays a synthetic match with live stats and personalized, fact-checked AI cards.
+
+const $ = (id) => document.getElementById(id);
+const SVG = "http://www.w3.org/2000/svg";
+const END_T = 91 * 60;
+
+const TEXT = {
+  en: { speed: "Speed", legend: "line = pass · circle = shot · ring = goal · last 60 seconds", feed: "Story so far",
+        thinking: "AI commentator is writing…", recap: "Match recap", you: "Your view", mode: "Mode",
+        language: "Language", team: "Favorite team", player: "Favorite player", focus: "Focus", stats: "Match stats",
+        momentum: "Momentum (xG per 15 min)", playercard: "Player card", passes: "Passes", shots: "Shots",
+        goals: "Goals", pressures: "Pressures", foryou: "★ For you", checked: "fact-checked", headlineOnly: "headline only",
+        none: "None",
+        statLabels: { possession_pct: "Possession %", shots: "Shots", shots_on_target: "On target", xg: "xG",
+                      pass_accuracy_pct: "Pass accuracy %", pressures: "Pressures", tackles_won: "Tackles won" },
+        kinds: { goal: "Goal", big_chance_missed: "Big chance", great_save: "Great save", yellow_card: "Yellow card",
+                 pressing_spell: "Pressing", momentum_swing: "Momentum", fastest_shot: "Fastest shot" } },
+  th: { speed: "ความเร็ว", legend: "เส้น = ส่งบอล · วงกลม = ยิง · วงแหวน = ประตู · 60 วินาทีล่าสุด", feed: "เรื่องราวของเกม",
+        thinking: "AI กำลังเขียนบทบรรยาย…", recap: "สรุปเกม", you: "มุมมองของคุณ", mode: "โหมด",
+        language: "ภาษา", team: "ทีมโปรด", player: "นักเตะคนโปรด", focus: "สนใจเรื่อง", stats: "สถิติการแข่งขัน",
+        momentum: "โมเมนตัม (xG ทุก 15 นาที)", playercard: "การ์ดนักเตะ", passes: "ส่งบอล", shots: "ยิง",
+        goals: "ประตู", pressures: "เพรส", foryou: "★ สำหรับคุณ", checked: "ตรวจสอบตัวเลขแล้ว", headlineOnly: "หัวข้อเท่านั้น",
+        none: "ไม่มี",
+        statLabels: { possession_pct: "ครองบอล %", shots: "ยิง", shots_on_target: "ยิงตรงกรอบ", xg: "xG",
+                      pass_accuracy_pct: "ส่งบอลสำเร็จ %", pressures: "เพรส", tackles_won: "แย่งบอลสำเร็จ" },
+        kinds: { goal: "ประตู", big_chance_missed: "โอกาสทอง", great_save: "เซฟสวย", yellow_card: "ใบเหลือง",
+                 pressing_spell: "เพรสหนัก", momentum_swing: "โมเมนตัม", fastest_shot: "ยิงแรงสุด" } },
+};
+
+const S = {
+  t: 0, playing: false, speed: 60, match: null, events: [], overlays: new Map(), shown: new Set(),
+  queue: [], cardTimer: null, lastMinute: -1, loadingOverlays: false, overlaysFor: -1, profileVersion: 0,
+};
+
+const key = (o) => `${o.t}|${o.kind}|${o.player || o.team}`;
+const fmt = (t) => `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+const T = () => TEXT[$("lang").value] || TEXT.en;
+const sideOf = (team) => (team === S.match.away_team ? "away" : "home");
+
+function profileQuery() {
+  const p = new URLSearchParams({ mode: $("mode").value, lang: $("lang").value });
+  if ($("team").value) p.set("team", $("team").value);
+  if ($("player").value) p.set("player", $("player").value);
+  if ($("focus").value) p.set("focus", $("focus").value);
+  return p;
+}
+
+// ---------- Start ----------
+async function start() {
+  S.match = await (await fetch("/api/match")).json();
+  S.events = (await (await fetch("/api/events")).json()).map((e) => ({ ...e, t: e.minute * 60 + e.second }));
+  $("aiStatus").textContent = `· AI ${S.match.ai}`;
+  for (const id of ["homeName", "legHome"]) $(id).textContent = S.match.home_team;
+  for (const id of ["awayName", "legAway"]) $(id).textContent = S.match.away_team;
+  fillPickers();
+  applyLanguage();
+
+  $("playBtn").onclick = () => { S.playing = !S.playing; $("playBtn").textContent = S.playing ? "⏸" : "▶"; };
+  $("speed").onchange = (e) => (S.speed = Number(e.target.value));
+  $("slider").oninput = (e) => seek(Number(e.target.value));
+  for (const id of ["mode", "lang", "team", "player", "focus"]) $(id).onchange = profileChanged;
+
+  setInterval(tick, 100);
+  update();
+}
+
+function fillPickers() {
+  const team = $("team"), player = $("player");
+  team.innerHTML = player.innerHTML = "";
+  team.add(new Option("—", ""));
+  team.add(new Option(S.match.home_team, S.match.home_team));
+  team.add(new Option(S.match.away_team, S.match.away_team));
+  player.add(new Option("—", ""));
+  for (const [side, name] of [["home", S.match.home_team], ["away", S.match.away_team]]) {
+    const group = document.createElement("optgroup");
+    group.label = name;
+    for (const p of S.match.lineups[side]) group.append(new Option(`${p.number}. ${p.name} (${p.position})`, p.name));
+    player.append(group);
+  }
+}
+
+function applyLanguage() {
+  const tx = T();
+  document.documentElement.lang = $("lang").value;
+  document.querySelectorAll("[data-i18n]").forEach((el) => { if (tx[el.dataset.i18n]) el.textContent = tx[el.dataset.i18n]; });
+  $("cardForYou").textContent = tx.foryou;
+}
+
+// ---------- Clock ----------
+function tick() {
+  if (!S.playing) return;
+  S.t = Math.min(END_T, S.t + S.speed * 0.1);
+  if (S.t >= END_T) { S.playing = false; $("playBtn").textContent = "▶"; }
+  update();
+}
+
+function seek(t) {
+  S.t = t;
+  S.queue = [];
+  hideCard();
+  S.shown = new Set([...S.overlays.values()].filter((o) => o.t <= t).map(key)); // jump: no pop-ups for the past
+  renderFeed();
+  update();
+}
+
+function update() {
+  $("clock").textContent = fmt(S.t);
+  $("slider").value = Math.floor(S.t);
+  drawPitch();
+  const minute = Math.floor(S.t / 60);
+  if (minute !== S.lastMinute) {
+    S.lastMinute = minute;
+    loadState(minute);
+  }
+  loadOverlays(minute);
+  queueDueCards();
+}
+
+// ---------- Stats ----------
+async function loadState(minute) {
+  const s = await (await fetch(`/api/state?minute=${minute + 1}`)).json();
+  if (minute !== S.lastMinute) return; // a newer minute is already loading
+  $("score").textContent = `${s.match.score_home} - ${s.match.score_away}`;
+  renderStats(s.team_stats);
+  renderMomentum(s.timeline);
+}
+
+function renderStats(teamStats) {
+  const home = teamStats.find((x) => x.team_side === "home") || {};
+  const away = teamStats.find((x) => x.team_side === "away") || {};
+  const box = $("stats");
+  box.innerHTML = "";
+  for (const [k, label] of Object.entries(T().statLabels)) {
+    const h = Number(home[k] ?? 0), a = Number(away[k] ?? 0);
+    const total = h + a || 1;
+    const row = document.createElement("div");
+    row.innerHTML = `<div class="stat-row"><span class="v"></span><span class="stat-mid"></span><span class="v r"></span></div>
+      <div class="split"><span class="h"></span><span class="a"></span></div>`;
+    const [hv, mid, av] = row.querySelectorAll(".stat-row span");
+    hv.textContent = home[k] ?? 0; mid.textContent = label; av.textContent = away[k] ?? 0;
+    row.querySelector(".h").style.flex = String(h / total || 0.0001);
+    row.querySelector(".a").style.flex = String(a / total || 0.0001);
+    box.append(row);
+  }
+}
+
+function renderMomentum(timeline) {
+  const svg = $("momentum");
+  svg.innerHTML = "";
+  const W = 300, H = 140, mid = 66, left = 34, slot = (W - left) / 6;
+  const maxXg = Math.max(0.5, ...timeline.flatMap((b) => [b.home_xg, b.away_xg]));
+  const scale = (v) => (v / maxXg) * 52;
+  const el = (name, attrs, parent = svg) => {
+    const n = document.createElementNS(SVG, name);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    parent.append(n);
+    return n;
+  };
+  el("line", { x1: left, x2: W, y1: mid, y2: mid, class: "axis" });
+  el("text", { x: 0, y: mid - 40 }).textContent = S.match.home_team.split(" ")[0];
+  el("text", { x: 0, y: mid + 48 }).textContent = S.match.away_team.split(" ")[0];
+  for (let i = 0; i < 6; i++) {
+    const b = timeline.find((x) => x.from_minute === i * 15);
+    const x = left + i * slot + slot * 0.25, w = slot * 0.5;
+    el("text", { x: left + i * slot + slot / 2, y: H - 2, "text-anchor": "middle" }).textContent = `${i * 15}'`;
+    if (!b) continue;
+    const hh = scale(b.home_xg), ah = scale(b.away_xg);
+    if (hh > 0) el("rect", { x, y: mid - 1 - hh, width: w, height: hh, rx: 2, class: "bar-h" });
+    if (ah > 0) el("rect", { x, y: mid + 1, width: w, height: ah, rx: 2, class: "bar-a" });
+    const hit = el("rect", { x: left + i * slot, y: 0, width: slot, height: H - 14, class: "hit" });
+    hit.onmousemove = (e) => showTip(e, `${b.from_minute}'–${b.to_minute}' · ${S.match.home_team} xG ${b.home_xg} · ${S.match.away_team} xG ${b.away_xg}`);
+    hit.onmouseleave = () => $("tip").classList.add("hidden");
+  }
+}
+
+function showTip(e, text) {
+  const tip = $("tip"), box = $("momentum").getBoundingClientRect();
+  tip.textContent = text;
+  tip.classList.remove("hidden");
+  const x = Math.min(e.clientX - box.left + 10, box.width - tip.offsetWidth - 4);
+  tip.style.left = `${Math.max(0, x)}px`;
+  tip.style.top = `${e.clientY - box.top - 34}px`;
+}
+
+// ---------- Pitch ----------
+function drawPitch() {
+  const layer = $("eventLayer");
+  layer.innerHTML = "";
+  const recent = S.events.filter((e) => e.t <= S.t && e.t > S.t - 60);
+  const flip = (e, x, y) => (e.team_side === "away" ? [105 - x, 68 - y] : [x, y]);
+  let ball = null;
+  for (const e of recent) {
+    if (e.x == null) continue;
+    const color = e.team_side === "away" ? "var(--away)" : "var(--home)";
+    const [x, y] = flip(e, e.x, e.y);
+    if (e.type === "pass") {
+      const [ex, ey] = flip(e, e.end_x, e.end_y);
+      const line = document.createElementNS(SVG, "line");
+      Object.entries({ x1: x, y1: y, x2: ex, y2: ey, stroke: color, class: `ev-pass ${e.outcome === "complete" ? "" : "fail"}` })
+        .forEach(([k, v]) => line.setAttribute(k, v));
+      layer.append(line);
+      ball = [ex, ey];
+    } else if (e.type === "shot") {
+      const c = document.createElementNS(SVG, "circle");
+      Object.entries({ cx: x, cy: y, r: 1.3, fill: color, class: "ev-shot" }).forEach(([k, v]) => c.setAttribute(k, v));
+      layer.append(c);
+      if (e.outcome === "goal") {
+        const ring = document.createElementNS(SVG, "circle");
+        Object.entries({ cx: x, cy: y, r: 2.6, class: "ev-goal" }).forEach(([k, v]) => ring.setAttribute(k, v));
+        layer.append(ring);
+      }
+      ball = [x, y];
+    } else {
+      ball = [x, y];
+    }
+  }
+  if (ball) {
+    const b = document.createElementNS(SVG, "circle");
+    Object.entries({ cx: ball[0], cy: ball[1], r: 0.9, class: "ball" }).forEach(([k, v]) => b.setAttribute(k, v));
+    layer.append(b);
+  }
+}
+
+// ---------- AI overlays ----------
+async function loadOverlays(minute) {
+  if (S.loadingOverlays || minute === S.overlaysFor) return;
+  S.loadingOverlays = true;
+  const version = S.profileVersion;
+  const asked = minute >= 90 ? 999 : minute + 1;
+  $("pending").classList.remove("hidden");
+  try {
+    const q = profileQuery();
+    q.set("minute", asked);
+    const data = await (await fetch(`/api/overlays?${q}`)).json();
+    if (version !== S.profileVersion) return; // viewer changed settings while we waited
+    S.overlaysFor = minute;
+    for (const o of data.overlays) {
+      if (S.overlays.has(key(o))) continue;
+      S.overlays.set(key(o), o);
+      if (o.t < S.t - 120) S.shown.add(key(o)); // too old to pop up: straight into the feed
+    }
+    renderFeed();
+    renderPlayerCard(data.player_card);
+    if (data.recap) {
+      $("recap").classList.remove("hidden");
+      $("recapHeadline").textContent = data.recap.headline;
+      $("recapText").textContent = data.recap.text;
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    S.loadingOverlays = false;
+    $("pending").classList.add("hidden");
+  }
+}
+
+function queueDueCards() {
+  const due = [...S.overlays.values()].filter((o) => o.t <= S.t && !S.shown.has(key(o))).sort((a, b) => a.t - b.t);
+  for (const o of due) { S.shown.add(key(o)); S.queue.push(o); }
+  if (due.length) renderFeed();
+  if (!S.cardTimer && S.queue.length) showCard(S.queue.shift());
+}
+
+function showCard(o) {
+  const tx = T();
+  const card = $("card");
+  card.classList.remove("hidden", "away");
+  void card.offsetWidth; // restart the animation
+  if (sideOf(o.team) === "away") card.classList.add("away");
+  $("cardKind").textContent = tx.kinds[o.kind] || o.kind;
+  $("cardTime").textContent = o.show_at;
+  $("cardForYou").classList.toggle("hidden", !o.for_you);
+  const check = $("cardCheck");
+  check.textContent = o.text ? tx.checked : tx.headlineOnly;
+  check.classList.toggle("ok", Boolean(o.grounded && o.text));
+  $("cardHeadline").textContent = o.headline;
+  $("cardText").textContent = o.text;
+  S.cardTimer = setTimeout(() => { hideCard(); queueDueCards(); }, o.kind === "goal" ? 9000 : 7000);
+}
+
+function hideCard() {
+  clearTimeout(S.cardTimer);
+  S.cardTimer = null;
+  $("card").classList.add("hidden");
+}
+
+function renderFeed() {
+  const feed = $("feed");
+  feed.innerHTML = "";
+  const tx = T();
+  const items = [...S.overlays.values()].filter((o) => S.shown.has(key(o))).sort((a, b) => a.t - b.t);
+  for (const o of items) {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="t"></span><span class="bar"></span><div><div class="h"></div><div class="x"></div></div>`;
+    li.querySelector(".t").textContent = o.show_at;
+    if (sideOf(o.team) === "away") li.querySelector(".bar").classList.add("away");
+    li.querySelector(".h").textContent = `${o.for_you ? "★ " : ""}${tx.kinds[o.kind] || o.kind} · ${o.headline}`;
+    li.querySelector(".x").textContent = o.text;
+    feed.append(li);
+  }
+}
+
+function renderPlayerCard(rows) {
+  const panel = $("playerPanel");
+  if (!rows || !$("player").value) { panel.classList.add("hidden"); return; }
+  panel.classList.remove("hidden");
+  $("playerName").textContent = $("player").value;
+  const body = $("playerRows");
+  body.innerHTML = "";
+  for (const r of rows) {
+    const tr = document.createElement("tr");
+    for (const v of [r.minute, r.passes, r.shots, r.xg, r.goals, r.pressures]) {
+      const td = document.createElement("td");
+      td.textContent = v;
+      tr.append(td);
+    }
+    body.append(tr);
+  }
+}
+
+function profileChanged() {
+  S.profileVersion++;
+  S.overlays.clear();
+  S.shown.clear();
+  S.queue = [];
+  S.overlaysFor = -1;
+  hideCard();
+  $("recap").classList.add("hidden");
+  applyLanguage();
+  renderFeed();
+  S.lastMinute = -1; // refresh stat labels in the new language
+  update();
+}
+
+start();
