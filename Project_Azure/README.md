@@ -49,3 +49,37 @@ Event types: `match_start`, `kickoff`, `pass`, `pressure`, `tackle`, `intercepti
 `shot`, `save`, `goal`, `foul`, `card`, `half_end`, `match_end`.
 
 Pitch is 105 m x 68 m. Coordinates are from the view of the team on the ball (they attack towards x = 105).
+
+## Architecture
+
+```mermaid
+flowchart LR
+  gen[generate_match.py<br/>synthetic events] --> ingest[(match .jsonl)]
+  ingest --> interpret[interpret.py<br/>DuckDB SQL: stats + key moments]
+  interpret --> personalize[personalize.py<br/>pick moments per viewer]
+  personalize --> explain[explain.py<br/>Azure AI Foundry model]
+  explain --> ground{grounding.py<br/>every number checked}
+  ground -- ok --> cache[(AI card cache)]
+  ground -- 2 fails --> headline[plain fact headline]
+  cache --> app[app.py FastAPI<br/>+ web overlay]
+  headline --> app
+  app --> viewer([Fan / analyst<br/>English / Thai])
+```
+
+## Deploy to Azure Container Apps
+
+The app runs as one container. Secrets stay out of the image: the AI key is stored as a Container Apps secret.
+
+```powershell
+python src/warm_cache.py                      # pre-make AI cards (instant + cheap demo)
+az login
+az containerapp up --name match-story --resource-group match-story-rg --location southeastasia `
+  --source . --ingress external --target-port 8000 `
+  --env-vars AZURE_AI_ENDPOINT=<endpoint> AZURE_AI_DEPLOYMENT=match-story-model AI_BUDGET=300
+az containerapp secret set -n match-story -g match-story-rg --secrets ai-key=<key>
+az containerapp update -n match-story -g match-story-rg --set-env-vars AZURE_AI_KEY=secretref:ai-key `
+  --min-replicas 0 --max-replicas 1
+```
+
+`AI_BUDGET` caps new AI calls per container start, so a public demo can't run up a bill. Cached cards are always free.
+Remove everything afterwards with `az group delete -n match-story-rg`.

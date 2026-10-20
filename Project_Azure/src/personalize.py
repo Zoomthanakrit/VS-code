@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -52,6 +53,10 @@ ON_SCREEN = {"goal": 20, "big_chance_missed": 12, "great_save": 12, "momentum_sw
 MAX_PER_TYPE = 2
 
 CACHE_DIR = Path("data/cache")
+
+# Safety cap for a public website: max new AI cards per app start (cached cards are free and unlimited).
+# Set AI_BUDGET in the environment; default = no limit when you run it on your own laptop.
+AI_CALLS_LEFT = int(os.environ.get("AI_BUDGET", "1000000"))
 
 
 @dataclass
@@ -143,8 +148,10 @@ def cached_answer(client, deployment, key: dict, task: str, facts: dict, fallbac
     path = CACHE_DIR / f"{name}.json"
     if path.exists():
         return {**json.loads(path.read_text(encoding="utf-8")), "cached": True}
-    if client is None:  # no AI connected (no .env): show the plain, fact-based headline
+    global AI_CALLS_LEFT
+    if client is None or AI_CALLS_LEFT <= 0:  # no AI (no .env) or budget used up: plain, fact-based headline
         return {"headline": fallback, "commentary": "", "grounded": True, "cached": False, "offline": True}
+    AI_CALLS_LEFT -= 1
     answer = grounded_answer(client, deployment, task, facts, fallback)
     if answer["grounded"]:  # only keep good answers
         path.write_text(json.dumps(answer, ensure_ascii=False), encoding="utf-8")

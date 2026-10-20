@@ -1,0 +1,9 @@
+# Never put secrets or local junk in the image
+.env
+.env.*
+.venv/
+**/__pycache__/
+.git/
+data/*_stats.json
+data/*_story_*.json
+data/*_overlay_*.json
