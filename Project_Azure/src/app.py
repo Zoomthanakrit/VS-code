@@ -86,7 +86,7 @@ def events() -> list[dict]:
 @lru_cache(maxsize=128)
 def state_at(minute: int) -> dict:
     s = interpret(MATCH_FILE, up_to_minute=minute)
-    return {"match": s["match"], "team_stats": s["team_stats"], "timeline": s["timeline"]}
+    return {"match": s["match"], "team_stats": s["team_stats"], "timeline": s["timeline"], "zones": s["zones"]}
 
 
 @app.get("/api/state")

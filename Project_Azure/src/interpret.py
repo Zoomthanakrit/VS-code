@@ -6,6 +6,7 @@ to compute:
   - player stats     (who passed, shot, pressed the most)
   - timeline         (each 15 minutes: who had the ball, who created chances)
   - key moments      (goals, big misses, great saves, momentum swings...)
+  - zones            (% of play in the 1st, 2nd and 3rd third of the pitch)
 
 Every number the AI uses later comes from here, so the AI never has to guess.
 
@@ -220,6 +221,46 @@ def find_key_moments(con: duckdb.DuckDBPyConnection, teams: dict[str, str]) -> l
     return sorted(moments, key=lambda m: (m["minute"], m["second"]))
 
 
+# --- Zones (thirds of the pitch) ------------------------------------------------------
+# The pitch is 105 m long, split into 3 thirds of 35 m:
+#   1st third = 0-35 m (near your own goal), 2nd third = 35-70 m (middle), 3rd third = 70-105 m (near the goal you attack)
+
+def zones(con: duckdb.DuckDBPyConnection, last_minute: int) -> dict:
+    """Where the ball was played, in %.
+
+    territory: where the ball was on the pitch, seen from the home team (home attacks to the right).
+               Uses passes and shots. "last_10" = only the last 10 minutes (live momentum).
+    by_team:   where each team made its passes, from its own point of view
+               (defensive / middle / attacking third).
+    """
+    def territory(from_minute: int) -> dict:
+        r = rows(con, f"""
+            WITH ball AS (
+                SELECT CASE WHEN team_side = 'away' THEN 105 - x ELSE x END AS hx
+                FROM events WHERE type IN ('pass', 'shot') AND x IS NOT NULL AND minute >= {from_minute}
+            )
+            SELECT COUNT(*) AS actions,
+                   ROUND(100.0 * AVG(CASE WHEN hx < 35 THEN 1 ELSE 0 END), 1) AS home_third_pct,
+                   ROUND(100.0 * AVG(CASE WHEN hx > 70 THEN 1 ELSE 0 END), 1) AS away_third_pct
+            FROM ball
+        """)[0]
+        if not r["actions"]:
+            return {"actions": 0, "home_third_pct": 0, "middle_third_pct": 0, "away_third_pct": 0}
+        r["middle_third_pct"] = round(100 - r["home_third_pct"] - r["away_third_pct"], 1)
+        return r
+
+    by_team = rows(con, """
+        SELECT team_side, ANY_VALUE(team) AS team, COUNT(*) AS passes,
+               ROUND(100.0 * AVG(CASE WHEN x < 35 THEN 1 ELSE 0 END), 1) AS defensive_third_pct,
+               ROUND(100.0 * AVG(CASE WHEN x > 70 THEN 1 ELSE 0 END), 1) AS attacking_third_pct
+        FROM events WHERE type = 'pass' AND x IS NOT NULL
+        GROUP BY team_side ORDER BY team_side DESC
+    """)
+    for t in by_team:
+        t["middle_third_pct"] = round(100 - t["defensive_third_pct"] - t["attacking_third_pct"], 1)
+    return {"territory": territory(0), "territory_last_10": territory(max(0, last_minute - 9)), "by_team": by_team}
+
+
 # --- Put it all together ---------------------------------------------------------------
 
 def interpret(match_file: Path, up_to_minute: int = 999) -> dict:
@@ -239,6 +280,7 @@ def interpret(match_file: Path, up_to_minute: int = 999) -> dict:
         "player_stats": rows(con, PLAYER_STATS_SQL),
         "timeline": rows(con, TIMELINE_SQL),
         "key_moments": find_key_moments(con, teams),
+        "zones": zones(con, last or 0),
     }
 
 

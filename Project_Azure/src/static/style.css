@@ -135,3 +135,24 @@ button { cursor: pointer; min-width: 44px; }
   .controls { width: 100%; }
   .controls input[type=range] { flex: 1; width: auto; }
 }
+
+/* Zones: thirds of the pitch */
+.zone { fill: #ffffff; }
+.zone-line { stroke: rgba(255, 255, 255, 0.55); stroke-width: .3; stroke-dasharray: 1.2 1; }
+.zone-pct { fill: var(--text-primary); font-size: 4.2px; font-weight: 700; }
+.zone-label { fill: var(--text-secondary); font-size: 2.4px; }
+.zone-pick { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+.zone-pick select { padding: 2px 6px; font-size: 12px; }
+.direction { text-align: center; margin-top: 4px; letter-spacing: .02em; }
+.thirds { display: flex; flex-direction: column; gap: 14px; }
+.thirds-team { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+.thirds-bar { display: flex; gap: 2px; height: 12px; }
+.thirds-bar span { border-radius: 4px; }
+.thirds-row.home .s1 { background: color-mix(in srgb, var(--home) 35%, var(--surface-1)); }
+.thirds-row.home .s2 { background: color-mix(in srgb, var(--home) 65%, var(--surface-1)); }
+.thirds-row.home .s3 { background: var(--home); }
+.thirds-row.away .s1 { background: color-mix(in srgb, var(--away) 35%, var(--surface-1)); }
+.thirds-row.away .s2 { background: color-mix(in srgb, var(--away) 65%, var(--surface-1)); }
+.thirds-row.away .s3 { background: var(--away); }
+.thirds-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary);
+  margin-top: 4px; font-variant-numeric: tabular-nums; }

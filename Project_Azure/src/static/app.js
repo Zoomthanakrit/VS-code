@@ -10,7 +10,9 @@ const TEXT = {
         language: "Language", team: "Favorite team", player: "Favorite player", focus: "Focus", stats: "Match stats",
         momentum: "Momentum (xG per 15 min)", playercard: "Player card", passes: "Passes", shots: "Shots",
         goals: "Goals", pressures: "Pressures", foryou: "★ For you", checked: "fact-checked", headlineOnly: "headline only",
-        none: "None",
+        none: "None", zones: "Zones", wholeMatch: "Whole match", last10: "Last 10 min", off: "Off",
+        thirds: "Where each team plays (passes by third)", defend: "Defend", middle: "Middle", attack: "Attack",
+        zoneNames: ["1st third", "2nd third", "3rd third"], attacks: "attacks",
         statLabels: { possession_pct: "Possession %", shots: "Shots", shots_on_target: "On target", xg: "xG",
                       pass_accuracy_pct: "Pass accuracy %", pressures: "Pressures", tackles_won: "Tackles won" },
         kinds: { goal: "Goal", big_chance_missed: "Big chance", great_save: "Great save", yellow_card: "Yellow card",
@@ -20,7 +22,9 @@ const TEXT = {
         language: "ภาษา", team: "ทีมโปรด", player: "นักเตะคนโปรด", focus: "สนใจเรื่อง", stats: "สถิติการแข่งขัน",
         momentum: "โมเมนตัม (xG ทุก 15 นาที)", playercard: "การ์ดนักเตะ", passes: "ส่งบอล", shots: "ยิง",
         goals: "ประตู", pressures: "เพรส", foryou: "★ สำหรับคุณ", checked: "ตรวจสอบตัวเลขแล้ว", headlineOnly: "หัวข้อเท่านั้น",
-        none: "ไม่มี",
+        none: "ไม่มี", zones: "โซน", wholeMatch: "ทั้งเกม", last10: "10 นาทีล่าสุด", off: "ปิด",
+        thirds: "แต่ละทีมเล่นโซนไหน (ส่งบอลแยกตามโซน)", defend: "แดนรับ", middle: "แดนกลาง", attack: "แดนรุก",
+        zoneNames: ["โซน 1", "โซน 2", "โซน 3"], attacks: "บุก",
         statLabels: { possession_pct: "ครองบอล %", shots: "ยิง", shots_on_target: "ยิงตรงกรอบ", xg: "xG",
                       pass_accuracy_pct: "ส่งบอลสำเร็จ %", pressures: "เพรส", tackles_won: "แย่งบอลสำเร็จ" },
         kinds: { goal: "ประตู", big_chance_missed: "โอกาสทอง", great_save: "เซฟสวย", yellow_card: "ใบเหลือง",
@@ -58,6 +62,7 @@ async function start() {
   $("playBtn").onclick = () => { S.playing = !S.playing; $("playBtn").textContent = S.playing ? "⏸" : "▶"; };
   $("speed").onchange = (e) => (S.speed = Number(e.target.value));
   $("slider").oninput = (e) => seek(Number(e.target.value));
+  $("zoneMode").onchange = () => renderZones(S.zones);
   for (const id of ["mode", "lang", "team", "player", "focus"]) $(id).onchange = profileChanged;
 
   setInterval(tick, 100);
@@ -123,6 +128,61 @@ async function loadState(minute) {
   $("score").textContent = `${s.match.score_home} - ${s.match.score_away}`;
   renderStats(s.team_stats);
   renderMomentum(s.timeline);
+  S.zones = s.zones;
+  renderZones(s.zones);
+}
+
+// ---------- Zones: thirds of the pitch ----------
+function renderZones(z) {
+  const tx = T();
+  const layer = $("zoneLayer");
+  layer.innerHTML = "";
+  $("direction").textContent = `◀ ${S.match.away_team} ${tx.attacks}   ·   ${S.match.home_team} ${tx.attacks} ▶`;
+  renderThirds(z);
+  const mode = $("zoneMode").value;
+  if (!z || mode === "off") return;
+  const t = z[mode];
+  const parts = [
+    [0, t.home_third_pct, tx.zoneNames[0]], [35, t.middle_third_pct, tx.zoneNames[1]], [70, t.away_third_pct, tx.zoneNames[2]],
+  ];
+  for (const [x, pct, label] of parts) {
+    const rect = document.createElementNS(SVG, "rect");
+    Object.entries({ x, y: 0, width: 35, height: 68, class: "zone", "fill-opacity": (0.03 + (pct / 100) * 0.4).toFixed(3) })
+      .forEach(([k, v]) => rect.setAttribute(k, v));
+    layer.append(rect);
+    const big = document.createElementNS(SVG, "text");
+    Object.entries({ x: x + 17.5, y: 9, class: "zone-pct", "text-anchor": "middle" }).forEach(([k, v]) => big.setAttribute(k, v));
+    big.textContent = `${pct}%`;
+    const small = document.createElementNS(SVG, "text");
+    Object.entries({ x: x + 17.5, y: 13, class: "zone-label", "text-anchor": "middle" }).forEach(([k, v]) => small.setAttribute(k, v));
+    small.textContent = label;
+    layer.append(big, small);
+  }
+  for (const x of [35, 70]) {
+    const line = document.createElementNS(SVG, "line");
+    Object.entries({ x1: x, x2: x, y1: 0, y2: 68, class: "zone-line" }).forEach(([k, v]) => line.setAttribute(k, v));
+    layer.append(line);
+  }
+}
+
+function renderThirds(z) {
+  const tx = T();
+  const box = $("thirds");
+  box.innerHTML = "";
+  if (!z) return;
+  for (const t of z.by_team) {
+    const row = document.createElement("div");
+    row.className = `thirds-row ${t.team_side}`;
+    row.innerHTML = `<div class="thirds-team"></div>
+      <div class="thirds-bar"><span class="s1"></span><span class="s2"></span><span class="s3"></span></div>
+      <div class="thirds-labels"><span></span><span></span><span></span></div>`;
+    row.querySelector(".thirds-team").textContent = t.team;
+    const values = [t.defensive_third_pct, t.middle_third_pct, t.attacking_third_pct];
+    const names = [tx.defend, tx.middle, tx.attack];
+    row.querySelectorAll(".thirds-bar span").forEach((el, i) => { el.style.flex = String(values[i] || 0.0001); });
+    row.querySelectorAll(".thirds-labels span").forEach((el, i) => { el.textContent = `${names[i]} ${values[i]}%`; });
+    box.append(row);
+  }
 }
 
 function renderStats(teamStats) {

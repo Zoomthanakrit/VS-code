@@ -42,13 +42,21 @@
             <rect x="0" y="24.84" width="5.5" height="18.32"/>
             <rect x="99.5" y="24.84" width="5.5" height="18.32"/>
           </g>
+          <g id="zoneLayer"></g>
           <g id="eventLayer"></g>
         </svg>
         <div class="legend muted">
           <span><i class="dot home"></i><span id="legHome">Home</span></span>
           <span><i class="dot away"></i><span id="legAway">Away</span></span>
           <span data-i18n="legend">line = pass · circle = shot · ring = goal · last 60 seconds</span>
+          <label class="zone-pick"><span data-i18n="zones">Zones</span>
+            <select id="zoneMode">
+              <option value="territory" data-i18n="wholeMatch">Whole match</option>
+              <option value="territory_last_10" data-i18n="last10">Last 10 min</option>
+              <option value="off" data-i18n="off">Off</option>
+            </select></label>
         </div>
+        <div class="direction muted" id="direction"></div>
 
         <div id="card" class="card hidden" role="status" aria-live="assertive">
           <div class="card-stripe"></div>
@@ -99,6 +107,11 @@
       <div class="panel">
         <h2 data-i18n="stats">Match stats</h2>
         <div id="stats" class="stats"></div>
+      </div>
+
+      <div class="panel">
+        <h2 data-i18n="thirds">Where each team plays (passes by third)</h2>
+        <div id="thirds" class="thirds"></div>
       </div>
 
       <div class="panel">
