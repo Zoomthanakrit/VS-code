@@ -92,6 +92,20 @@
 
       </div>
 
+      <div class="panel ask">
+        <h2 data-i18n="askTitle">Ask the Match</h2>
+        <form id="askForm" class="ask-row">
+          <input id="askInput" maxlength="200" autocomplete="off" aria-label="Your question">
+          <button type="submit" id="askBtn" data-i18n="askBtn">Ask</button>
+        </form>
+        <div id="askChips" class="chips"></div>
+        <div id="askAnswer" class="ask-answer hidden" aria-live="polite">
+          <div class="ask-q" id="askQ"></div>
+          <div class="ask-a" id="askA"></div>
+          <div class="ask-meta"><span class="tag check" id="askCheck"></span><span class="muted" id="askTools"></span></div>
+        </div>
+      </div>
+
       <div class="panel">
         <h2 data-i18n="agents">AI agent team (live)</h2>
         <div id="agentEmpty" class="muted" data-i18n="agentEmpty">Press ▶ to watch the agents work.</div>

@@ -185,3 +185,17 @@ button { cursor: pointer; min-width: 44px; }
   .agent-log li { grid-template-columns: 44px 1fr; }
   .agent-log .what { grid-column: 1 / -1; }
 }
+
+/* Ask the Match */
+.ask-row { display: flex; gap: 8px; }
+.ask-row input { flex: 1; min-width: 0; background: var(--surface-2); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font: inherit; }
+.ask-row button { font-weight: 600; }
+.ask-row button:disabled { opacity: .5; cursor: wait; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; min-width: 0; color: var(--text-secondary); }
+.chip:hover { color: var(--text-primary); }
+.ask-answer { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+.ask-q { font-size: 13px; color: var(--text-muted); }
+.ask-a { font-size: 16px; margin: 4px 0 8px; }
+.ask-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; }

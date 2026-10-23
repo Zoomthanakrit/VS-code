@@ -39,6 +39,7 @@ python src/app.py        # then open http://127.0.0.1:8000
 | 🎙️ Commentator | Writes the card in the viewer's language and style (Azure AI Foundry) | `explain.py`, `personalize.py` |
 | ✅ Fact-checker | Checks every number against the stats; blocks invented numbers | `grounding.py` |
 | 🎬 Director | Decides when a card goes on screen: goals at once, others wait for a calm moment, max one pop-up per 30 s | `director.py` |
+| 💬 Q&A agent | "Ask the Match": answers viewer questions by choosing SQL tools (overview, player, key moments, time window, pulse and zones), then the fact-checker verifies every number | `ask.py` |
 
 The web page shows their work live in the **AI agent team** log, plus a **Match Pulse** (control vs chaos in the last 5 minutes).
 

@@ -15,6 +15,11 @@ const TEXT = {
         chaos: "Chaos (how often the ball changes teams)", inControl: "in control", balanced: "Balanced",
         calm: "Calm", normal: "Normal", chaotic: "Chaotic", ballChanges: "changes of possession",
         agents: "AI agent team (live)", agentEmpty: "Press ▶ to watch the agents work.",
+        askTitle: "Ask the Match", askBtn: "Ask", askPlaceholder: "Ask anything about this match…",
+        askThinking: "The Q&A agent is looking up the stats…", askLooked: "Looked up", askNoTools: "no tools used",
+        askFail: "Sorry, something went wrong. Please try again.",
+        askChips: ["Who is in control right now?", "How is Ali Demir playing?", "Which team creates better chances?",
+                   "What changed in the last 10 minutes?"],
         thirds: "Where each team plays (passes by third)", defend: "Defend", middle: "Middle", attack: "Attack",
         zoneNames: ["1st third", "2nd third", "3rd third"], attacks: "attacks",
         statLabels: { possession_pct: "Possession %", shots: "Shots", shots_on_target: "On target", xg: "xG",
@@ -31,6 +36,11 @@ const TEXT = {
         chaos: "ความวุ่นวาย (บอลเปลี่ยนฝั่งบ่อยแค่ไหน)", inControl: "คุมเกม", balanced: "สูสี",
         calm: "นิ่ง", normal: "ปกติ", chaotic: "วุ่นวาย", ballChanges: "ครั้งที่เปลี่ยนการครองบอล",
         agents: "ทีมเอเจนต์ AI (สด)", agentEmpty: "กด ▶ เพื่อดูเอเจนต์ทำงาน",
+        askTitle: "ถามเกมนี้", askBtn: "ถาม", askPlaceholder: "ถามอะไรก็ได้เกี่ยวกับเกมนี้…",
+        askThinking: "เอเจนต์ถาม-ตอบกำลังค้นสถิติ…", askLooked: "ค้นข้อมูลจาก", askNoTools: "ไม่ได้ใช้เครื่องมือ",
+        askFail: "ขออภัย เกิดข้อผิดพลาด กรุณาลองใหม่",
+        askChips: ["ตอนนี้ทีมไหนคุมเกม?", "Ali Demir เล่นเป็นยังไงบ้าง?", "ทีมไหนสร้างโอกาสได้ดีกว่า?",
+                   "10 นาทีล่าสุดมีอะไรเปลี่ยนไป?"],
         thirds: "แต่ละทีมเล่นโซนไหน (ส่งบอลแยกตามโซน)", defend: "แดนรับ", middle: "แดนกลาง", attack: "แดนรุก",
         zoneNames: ["โซน 1", "โซน 2", "โซน 3"], attacks: "บุก",
         statLabels: { possession_pct: "ครองบอล %", shots: "ยิง", shots_on_target: "ยิงตรงกรอบ", xg: "xG",
@@ -71,6 +81,7 @@ async function start() {
   $("speed").onchange = (e) => (S.speed = Number(e.target.value));
   $("slider").oninput = (e) => seek(Number(e.target.value));
   $("zoneMode").onchange = () => renderZones(S.zones);
+  $("askForm").onsubmit = (e) => { e.preventDefault(); askQuestion(); };
   for (const id of ["mode", "lang", "team", "player", "focus"]) $(id).onchange = profileChanged;
 
   setInterval(tick, 100);
@@ -97,6 +108,59 @@ function applyLanguage() {
   document.documentElement.lang = $("lang").value;
   document.querySelectorAll("[data-i18n]").forEach((el) => { if (tx[el.dataset.i18n]) el.textContent = tx[el.dataset.i18n]; });
   $("cardForYou").textContent = tx.foryou;
+  $("askInput").placeholder = tx.askPlaceholder;
+  const chips = $("askChips");
+  chips.innerHTML = "";
+  for (const q of tx.askChips) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip";
+    b.textContent = q;
+    b.onclick = () => { $("askInput").value = q; askQuestion(); };
+    chips.append(b);
+  }
+}
+
+// ---------- Ask the Match (Q&A agent) ----------
+async function askQuestion() {
+  const tx = T();
+  const question = $("askInput").value.trim();
+  if (!question) return;
+  const minute = S.t >= 90 * 60 ? 999 : Math.floor(S.t / 60) + 1;
+  $("askAnswer").classList.remove("hidden");
+  $("askQ").textContent = `“${question}”  ·  ${fmt(S.t)}`;
+  $("askA").textContent = tx.askThinking;
+  $("askCheck").textContent = "";
+  $("askCheck").classList.remove("ok");
+  $("askTools").textContent = "";
+  $("askBtn").disabled = true;
+  try {
+    const res = await fetch("/api/ask", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, minute, mode: $("mode").value, lang: $("lang").value }),
+    });
+    const r = await res.json();
+    if (!res.ok) throw new Error(r.detail || res.status);
+    $("askA").textContent = r.answer;
+    $("askCheck").textContent = r.grounded ? tx.checked : tx.headlineOnly;
+    $("askCheck").classList.toggle("ok", r.grounded);
+    const tools = [...new Set(r.tools.map((x) => x.tool.replaceAll("_", " ")))];
+    $("askTools").textContent = `  ${tx.askLooked}: ${tools.length ? tools.join(", ") : tx.askNoTools}` +
+      (r.cached ? "" : ` · ${r.seconds} s`);
+    S.qaLog = S.qaLog || [];
+    S.qaLog.push({ t: S.t, agent: "qa",
+      text: `Answered "${question}" using ${tools.length ? tools.join(", ") : "no tools"}${r.cached ? " (from cache)" : ` in ${r.seconds} s`}` });
+    S.qaLog.push({ t: S.t, agent: "factchecker", ok: r.grounded,
+      text: r.grounded ? `Checked ${r.numbers_checked} number${r.numbers_checked === 1 ? "" : "s"} in the answer: all came from the tools`
+                       : "Could not verify the numbers, so the agent refused to guess" });
+    S.logCount = -1;
+    renderAgentLog();
+  } catch (err) {
+    console.error(err);
+    $("askA").textContent = tx.askFail;
+  } finally {
+    $("askBtn").disabled = false;
+  }
 }
 
 // ---------- Clock ----------
@@ -137,10 +201,11 @@ const AGENTS = {
   commentator: { icon: "🎙️", en: "Commentator", th: "ผู้บรรยาย" },
   factchecker: { icon: "✅", en: "Fact-checker", th: "ผู้ตรวจข้อเท็จจริง" },
   director: { icon: "🎬", en: "Director", th: "ผู้กำกับ" },
+  qa: { icon: "💬", en: "Q&A agent", th: "เอเจนต์ถาม-ตอบ" },
 };
 
 function renderAgentLog() {
-  const visible = (S.agentLog || []).filter((l) => l.t <= S.t);
+  const visible = [...(S.agentLog || []), ...(S.qaLog || [])].filter((l) => l.t <= S.t).sort((a, b) => a.t - b.t);
   if (visible.length === S.logCount) return; // nothing new
   S.logCount = visible.length;
   const lang = $("lang").value;

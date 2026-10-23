@@ -22,11 +22,14 @@ from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 sys.path.insert(0, str(Path(__file__).parent))
+import ask as qa  # noqa: E402
 import director  # noqa: E402
+import personalize  # noqa: E402
 from explain import make_client  # noqa: E402
 from interpret import interpret  # noqa: E402
 from personalize import FOCUS, STYLE, Profile, build_overlay  # noqa: E402
@@ -123,6 +126,38 @@ def overlays(minute: int = 999, mode: str = "fan", lang: str = "en", team: str |
     director.plan(result["overlays"], TIMED_EVENTS)          # Director agent: when to show each card
     result["agent_log"] = director.agent_log(result["overlays"], result["profile"])
     return result
+
+
+class Question(BaseModel):
+    question: str
+    minute: int = 999
+    mode: str = "fan"
+    lang: str = "en"
+
+
+ASK_CACHE: dict[tuple, dict] = {}
+
+
+@app.post("/api/ask")
+def ask_the_match(q: Question) -> dict:
+    """Ask the Match: the Q&A agent answers with SQL tools, then the fact-checker checks it."""
+    text = q.question.strip()
+    if not text:
+        raise HTTPException(400, "Please type a question")
+    if q.mode not in STYLE or q.lang not in LANGUAGES:
+        raise HTTPException(400, "Unknown mode or language")
+    minute = max(1, min(q.minute, 999))
+    cache_key = (text.lower(), minute, q.mode, q.lang)
+    if cache_key in ASK_CACHE:
+        return {**ASK_CACHE[cache_key], "cached": True}
+    with AI_LOCK:
+        client = CLIENT if personalize.AI_CALLS_LEFT > 0 else None  # same safety budget as the cards
+        if client is not None:
+            personalize.AI_CALLS_LEFT -= 1
+        result = qa.ask(text, MATCH_FILE, minute, client, DEPLOYMENT, q.mode, q.lang)
+    if result["grounded"] and len(ASK_CACHE) < 500:
+        ASK_CACHE[cache_key] = result
+    return {**result, "cached": False}
 
 
 if __name__ == "__main__":
