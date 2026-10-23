@@ -485,6 +485,7 @@ function renderFeed() {
     if (sideOf(o.team) === "away") li.querySelector(".bar").classList.add("away");
     li.querySelector(".h").textContent = `${o.for_you ? "★ " : ""}${tx.kinds[o.kind] || o.kind} · ${o.headline}`;
     li.querySelector(".x").textContent = o.text;
+    li.querySelector(".h").dir = li.querySelector(".x").dir = "auto"; // right-to-left for Arabic
     feed.append(li);
   }
 }

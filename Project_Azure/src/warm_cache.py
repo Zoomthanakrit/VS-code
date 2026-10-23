@@ -26,6 +26,10 @@ PROFILES = [
     Profile(mode="fan", language="th", favorite_team="Chao Phraya Rovers"),
     Profile(mode="fan", language="en", favorite_player="Ali Demir"),
     Profile(mode="analyst", language="en", favorite_player="Ali Demir", focus="shooting"),
+    Profile(mode="fan", language="es"),
+    Profile(mode="fan", language="ar"),
+    Profile(mode="fan", language="ja"),
+    Profile(mode="fan", language="zh"),
 ]
 
 if __name__ == "__main__":

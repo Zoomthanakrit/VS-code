@@ -35,7 +35,14 @@ from interpret import interpret  # noqa: E402
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 
-LANGUAGES = {"en": "English", "th": "Thai (natural, like a Thai TV football commentator)"}
+LANGUAGES = {
+    "en": "English",
+    "th": "Thai (natural, like a Thai TV football commentator)",
+    "es": "Spanish (Latin American, like a TV football commentator)",
+    "ar": "Arabic (Modern Standard Arabic; write numbers with digits 0-9)",
+    "ja": "Japanese (natural TV commentary; write numbers with normal digits 0-9, not full-width)",
+    "zh": "Simplified Chinese (write numbers with normal digits 0-9)",
+}
 
 MODES = {
     "fan": "a casual fan. Be short, lively and easy to understand. No jargon. 1-2 sentences.",

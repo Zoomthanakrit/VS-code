@@ -55,8 +55,8 @@
               <span class="tag foryou hidden" id="cardForYou">★ For you</span>
               <span class="tag check" id="cardCheck"></span>
             </div>
-            <div class="card-headline" id="cardHeadline"></div>
-            <div class="card-text" id="cardText"></div>
+            <div class="card-headline" id="cardHeadline" dir="auto"></div>
+            <div class="card-text" id="cardText" dir="auto"></div>
           </div>
         </div>
         </div>
@@ -101,7 +101,7 @@
         <div id="askChips" class="chips"></div>
         <div id="askAnswer" class="ask-answer hidden" aria-live="polite">
           <div class="ask-q" id="askQ"></div>
-          <div class="ask-a" id="askA"></div>
+          <div class="ask-a" id="askA" dir="auto"></div>
           <div class="ask-meta"><span class="tag check" id="askCheck"></span><span class="muted" id="askTools"></span></div>
         </div>
       </div>
@@ -118,8 +118,8 @@
         <ol id="feed" class="feed"></ol>
         <div id="recap" class="recap hidden">
           <h3 data-i18n="recap">Match recap</h3>
-          <div class="card-headline" id="recapHeadline"></div>
-          <p id="recapText"></p>
+          <div class="card-headline" id="recapHeadline" dir="auto"></div>
+          <p id="recapText" dir="auto"></p>
         </div>
       </div>
     </section>
@@ -131,7 +131,7 @@
           <label><span data-i18n="mode">Mode</span>
             <select id="mode"><option value="fan">Fan</option><option value="analyst">Analyst</option></select></label>
           <label><span data-i18n="language">Language</span>
-            <select id="lang"><option value="en">English</option><option value="th">ไทย (Thai)</option></select></label>
+            <select id="lang"><option value="en">English</option><option value="th">ไทย (Thai)</option><option value="es">Español (Spanish)</option><option value="ar">العربية (Arabic)</option><option value="ja">日本語 (Japanese)</option><option value="zh">中文 (Chinese)</option></select></label>
           <label><span data-i18n="team">Favorite team</span><select id="team"></select></label>
           <label><span data-i18n="player">Favorite player</span><select id="player"></select></label>
           <label><span data-i18n="focus">Focus</span>

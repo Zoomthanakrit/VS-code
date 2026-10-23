@@ -1,6 +1,6 @@
 # Match Story
 
-AI match intelligence for synthetic football matches, in English and Thai.
+AI match intelligence for synthetic football matches, in English, Thai, Spanish, Arabic, Japanese and Chinese.
 Built for the Microsoft + Premier League "Inside the Game" Developer Hackathon (October 2026).
 
 All teams, players, and events are synthetic (made up). No real match data or footage is used.

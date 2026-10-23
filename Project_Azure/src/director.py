@@ -81,7 +81,7 @@ def plan(overlays: list[dict], events: list[dict]) -> list[dict]:
 
 def agent_log(overlays: list[dict], profile: dict) -> list[dict]:
     """A diary of what each agent did for each card. Each line has a match time t."""
-    lang = {"en": "English", "th": "Thai"}.get(profile.get("language"), profile.get("language"))
+    lang = {"en": "English", "th": "Thai", "es": "Spanish", "ar": "Arabic", "ja": "Japanese", "zh": "Chinese"}.get(profile.get("language"), profile.get("language"))
     log = []
     for o in overlays:
         kind = KIND_NAMES.get(o["kind"], o["kind"])

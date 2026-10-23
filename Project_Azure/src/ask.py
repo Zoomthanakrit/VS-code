@@ -132,7 +132,7 @@ RULES:
 
 AUDIENCE = {"fan": "a casual fan (simple words, at most 2 numbers)",
             "analyst": "an analyst (precise, 3-5 numbers)"}
-LANGUAGE = {"en": "English", "th": "Thai"}
+LANGUAGE = {"en": "English", "th": "Thai", "es": "Spanish (Latin American, like a TV football commentator)", "ar": "Arabic (Modern Standard Arabic; write numbers with digits 0-9)", "ja": "Japanese (natural TV commentary; write numbers with normal digits 0-9, not full-width)", "zh": "Simplified Chinese (write numbers with normal digits 0-9)"}
 
 
 def ask(question: str, match_file: Path, minute: int, client, deployment: str,
