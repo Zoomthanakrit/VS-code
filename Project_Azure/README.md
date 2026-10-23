@@ -31,6 +31,17 @@ python src/app.py        # then open http://127.0.0.1:8000
 
 `explain.py` needs a `.env` file (never committed) with `AZURE_AI_ENDPOINT`, `AZURE_AI_KEY`, `AZURE_AI_DEPLOYMENT`.
 
+## The AI agent team
+
+| Agent | Job | Code |
+|---|---|---|
+| 🧮 Stats agent | Finds key moments with SQL (goals, big chances, saves, momentum, pressing) | `interpret.py` |
+| 🎙️ Commentator | Writes the card in the viewer's language and style (Azure AI Foundry) | `explain.py`, `personalize.py` |
+| ✅ Fact-checker | Checks every number against the stats; blocks invented numbers | `grounding.py` |
+| 🎬 Director | Decides when a card goes on screen: goals at once, others wait for a calm moment, max one pop-up per 30 s | `director.py` |
+
+The web page shows their work live in the **AI agent team** log, plus a **Match Pulse** (control vs chaos in the last 5 minutes).
+
 ## How the AI stays honest
 
 1. SQL computes every number (`interpret.py`).

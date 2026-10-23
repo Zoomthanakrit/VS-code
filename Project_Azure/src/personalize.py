@@ -24,11 +24,13 @@ import hashlib
 import json
 import os
 import sys
+import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from explain import LANGUAGES, grounded_answer, make_client, moment_facts, recap_facts  # noqa: E402
+from grounding import check  # noqa: E402
 from interpret import interpret  # noqa: E402
 
 STYLE = {
@@ -152,10 +154,11 @@ def cached_answer(client, deployment, key: dict, task: str, facts: dict, fallbac
     if client is None or AI_CALLS_LEFT <= 0:  # no AI (no .env) or budget used up: plain, fact-based headline
         return {"headline": fallback, "commentary": "", "grounded": True, "cached": False, "offline": True}
     AI_CALLS_LEFT -= 1
+    started = time.time()
     answer = grounded_answer(client, deployment, task, facts, fallback)
     if answer["grounded"]:  # only keep good answers
         path.write_text(json.dumps(answer, ensure_ascii=False), encoding="utf-8")
-    return {**answer, "cached": False}
+    return {**answer, "cached": False, "ai_seconds": round(time.time() - started, 1)}
 
 
 # --- 3. EXTRA: player focus card ---------------------------------------------------------
@@ -187,12 +190,15 @@ def build_overlay(match_file: Path, profile: Profile, extra: int = 6, up_to_minu
         answer = cached_answer(client, deployment, {**match_key, "moment": [m["minute"], m["second"], m["type"]]},
                                task, facts, fallback=m["headline"])
         t = m["minute"] * 60 + m["second"]
+        fact_check = check(f"{answer['headline']} {answer['commentary']}", facts)  # runs on every card, even cached
         overlays.append({
             "t": t, "show_at": f"{m['minute']:02d}:{m['second']:02d}",
-            "duration_s": ON_SCREEN.get(m["type"], 10), "kind": m["type"],
+            "duration_s": ON_SCREEN.get(m["type"], 10), "kind": m["type"], "importance": m["importance"],
             "team": m["team"], "player": m["player"], "for_you": m["for_you"],
             "headline": answer["headline"], "text": answer["commentary"],
-            "grounded": answer["grounded"], "cached": answer["cached"],
+            "grounded": answer["grounded"] and fact_check["ok"], "cached": answer["cached"],
+            "offline": answer.get("offline", False), "ai_seconds": answer.get("ai_seconds"),
+            "numbers_checked": fact_check["checked"],
         })
         print(f"  {m['minute']:>2}' {'★' if m['for_you'] else ' '} [{'OK' if answer['grounded'] else 'FALLBACK'}"
               f"{', cached' if answer['cached'] else ''}] {answer['headline']}\n       {answer['commentary']}")

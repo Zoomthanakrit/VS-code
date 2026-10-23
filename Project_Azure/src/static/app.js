@@ -11,6 +11,10 @@ const TEXT = {
         momentum: "Momentum (xG per 15 min)", playercard: "Player card", passes: "Passes", shots: "Shots",
         goals: "Goals", pressures: "Pressures", foryou: "★ For you", checked: "fact-checked", headlineOnly: "headline only",
         none: "None", zones: "Zones", wholeMatch: "Whole match", last10: "Last 10 min", off: "Off",
+        pulse: "Match Pulse", pulseSub: "last 5 minutes", control: "Control (who keeps the ball)",
+        chaos: "Chaos (how often the ball changes teams)", inControl: "in control", balanced: "Balanced",
+        calm: "Calm", normal: "Normal", chaotic: "Chaotic", ballChanges: "changes of possession",
+        agents: "AI agent team (live)", agentEmpty: "Press ▶ to watch the agents work.",
         thirds: "Where each team plays (passes by third)", defend: "Defend", middle: "Middle", attack: "Attack",
         zoneNames: ["1st third", "2nd third", "3rd third"], attacks: "attacks",
         statLabels: { possession_pct: "Possession %", shots: "Shots", shots_on_target: "On target", xg: "xG",
@@ -23,6 +27,10 @@ const TEXT = {
         momentum: "โมเมนตัม (xG ทุก 15 นาที)", playercard: "การ์ดนักเตะ", passes: "ส่งบอล", shots: "ยิง",
         goals: "ประตู", pressures: "เพรส", foryou: "★ สำหรับคุณ", checked: "ตรวจสอบตัวเลขแล้ว", headlineOnly: "หัวข้อเท่านั้น",
         none: "ไม่มี", zones: "โซน", wholeMatch: "ทั้งเกม", last10: "10 นาทีล่าสุด", off: "ปิด",
+        pulse: "ชีพจรเกม", pulseSub: "5 นาทีล่าสุด", control: "การควบคุมเกม (ใครครองบอลได้)",
+        chaos: "ความวุ่นวาย (บอลเปลี่ยนฝั่งบ่อยแค่ไหน)", inControl: "คุมเกม", balanced: "สูสี",
+        calm: "นิ่ง", normal: "ปกติ", chaotic: "วุ่นวาย", ballChanges: "ครั้งที่เปลี่ยนการครองบอล",
+        agents: "ทีมเอเจนต์ AI (สด)", agentEmpty: "กด ▶ เพื่อดูเอเจนต์ทำงาน",
         thirds: "แต่ละทีมเล่นโซนไหน (ส่งบอลแยกตามโซน)", defend: "แดนรับ", middle: "แดนกลาง", attack: "แดนรุก",
         zoneNames: ["โซน 1", "โซน 2", "โซน 3"], attacks: "บุก",
         statLabels: { possession_pct: "ครองบอล %", shots: "ยิง", shots_on_target: "ยิงตรงกรอบ", xg: "xG",
@@ -103,7 +111,8 @@ function seek(t) {
   S.t = t;
   S.queue = [];
   hideCard();
-  S.shown = new Set([...S.overlays.values()].filter((o) => o.t <= t).map(key)); // jump: no pop-ups for the past
+  S.shown = new Set([...S.overlays.values()].filter((o) => showT(o) <= t).map(key)); // jump: no pop-ups for the past
+  S.logCount = -1;
   renderFeed();
   update();
 }
@@ -119,6 +128,35 @@ function update() {
   }
   loadOverlays(minute);
   queueDueCards();
+  renderAgentLog();
+}
+
+// ---------- Agent team log ----------
+const AGENTS = {
+  stats: { icon: "🧮", en: "Stats agent", th: "เอเจนต์สถิติ" },
+  commentator: { icon: "🎙️", en: "Commentator", th: "ผู้บรรยาย" },
+  factchecker: { icon: "✅", en: "Fact-checker", th: "ผู้ตรวจข้อเท็จจริง" },
+  director: { icon: "🎬", en: "Director", th: "ผู้กำกับ" },
+};
+
+function renderAgentLog() {
+  const visible = (S.agentLog || []).filter((l) => l.t <= S.t);
+  if (visible.length === S.logCount) return; // nothing new
+  S.logCount = visible.length;
+  const lang = $("lang").value;
+  const list = $("agentLog");
+  list.innerHTML = "";
+  for (const l of visible.slice(-10).reverse()) {
+    const a = AGENTS[l.agent] || { icon: "•", en: l.agent, th: l.agent };
+    const li = document.createElement("li");
+    li.className = `log ${l.agent}${l.ok === false ? " bad" : ""}${l.popup === false ? " skip" : ""}`;
+    li.innerHTML = `<span class="t"></span><span class="who"></span><span class="what"></span>`;
+    li.querySelector(".t").textContent = fmt(l.t);
+    li.querySelector(".who").textContent = `${a.icon} ${a[lang] || a.en}`;
+    li.querySelector(".what").textContent = l.text;
+    list.append(li);
+  }
+  $("agentEmpty").classList.toggle("hidden", visible.length > 0);
 }
 
 // ---------- Stats ----------
@@ -130,6 +168,24 @@ async function loadState(minute) {
   renderMomentum(s.timeline);
   S.zones = s.zones;
   renderZones(s.zones);
+  renderPulse(s.pulse);
+}
+
+// ---------- Match Pulse: control vs chaos (last 5 minutes) ----------
+function renderPulse(p) {
+  if (!p) return;
+  const tx = T();
+  $("pulseWindow").textContent = `${p.from_minute}'–${p.to_minute}'`;
+  $("ctrlHome").style.flex = String(p.home_control_pct || 0.0001);
+  $("ctrlAway").style.flex = String(p.away_control_pct || 0.0001);
+  $("ctrlHomeVal").textContent = `${S.match.home_team.split(" ")[0]} ${p.home_control_pct}%`;
+  $("ctrlAwayVal").textContent = `${p.away_control_pct}% ${S.match.away_team.split(" ")[0]}`;
+  const lead = p.home_control_pct >= 58 ? S.match.home_team : p.away_control_pct >= 58 ? S.match.away_team : null;
+  $("ctrlWord").textContent = lead ? `${lead} ${tx.inControl}` : tx.balanced;
+  $("chaosFill").style.width = `${p.chaos}%`;
+  $("chaosVal").textContent = `${p.chaos}/100`;
+  $("chaosWord").textContent = p.chaos >= 65 ? tx.chaotic : p.chaos >= 35 ? tx.normal : tx.calm;
+  $("chaosHint").textContent = `${p.ball_changes} ${tx.ballChanges}`;
 }
 
 // ---------- Zones: thirds of the pitch ----------
@@ -295,10 +351,12 @@ async function loadOverlays(minute) {
     if (version !== S.profileVersion) return; // viewer changed settings while we waited
     S.overlaysFor = minute;
     for (const o of data.overlays) {
-      if (S.overlays.has(key(o))) continue;
-      S.overlays.set(key(o), o);
-      if (o.t < S.t - 120) S.shown.add(key(o)); // too old to pop up: straight into the feed
+      const isNew = !S.overlays.has(key(o));
+      S.overlays.set(key(o), o); // always keep the Director's latest decision
+      if (isNew && showT(o) < S.t - 120) S.shown.add(key(o)); // too old to pop up: straight into the feed
     }
+    S.agentLog = data.agent_log || [];
+    S.logCount = -1;
     renderFeed();
     renderPlayerCard(data.player_card);
     if (data.recap) {
@@ -314,9 +372,15 @@ async function loadOverlays(minute) {
   }
 }
 
+// The Director agent decides when a card goes on screen (show_t) and whether it pops up at all.
+const showT = (o) => (o.show_t ?? o.t);
+
 function queueDueCards() {
-  const due = [...S.overlays.values()].filter((o) => o.t <= S.t && !S.shown.has(key(o))).sort((a, b) => a.t - b.t);
-  for (const o of due) { S.shown.add(key(o)); S.queue.push(o); }
+  const due = [...S.overlays.values()].filter((o) => showT(o) <= S.t && !S.shown.has(key(o))).sort((a, b) => showT(a) - showT(b));
+  for (const o of due) {
+    S.shown.add(key(o));
+    if (o.popup !== false) S.queue.push(o); // skipped pop-ups still go into the story list
+  }
   if (due.length) renderFeed();
   if (!S.cardTimer && S.queue.length) showCard(S.queue.shift());
 }
@@ -388,6 +452,8 @@ function profileChanged() {
   $("recap").classList.add("hidden");
   applyLanguage();
   renderFeed();
+  S.agentLog = [];
+  S.logCount = -1;
   S.lastMinute = -1; // refresh stat labels in the new language
   update();
 }

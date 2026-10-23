@@ -261,6 +261,35 @@ def zones(con: duckdb.DuckDBPyConnection, last_minute: int) -> dict:
     return {"territory": territory(0), "territory_last_10": territory(max(0, last_minute - 9)), "by_team": by_team}
 
 
+# --- Match Pulse: control vs chaos in the last 5 minutes ------------------------------
+
+def pulse(con: duckdb.DuckDBPyConnection, last_minute: int) -> dict:
+    """Who is in control right now, and is the game calm or chaotic?
+
+    control: each team's share of COMPLETED passes in the last 5 minutes (who keeps the ball).
+    chaos:   how often the ball changed teams per minute, turned into 0-100
+             (about 1 change per minute = 0 calm, about 5 per minute = 100 chaotic).
+    """
+    start = max(0, last_minute - 4)
+    r = rows(con, f"""
+        SELECT SUM(type = 'pass' AND outcome = 'complete' AND team_side = 'home') AS home_kept,
+               SUM(type = 'pass' AND outcome = 'complete' AND team_side = 'away') AS away_kept,
+               SUM(type = 'possession_change') AS ball_changes
+        FROM events WHERE minute >= {start} AND type <> 'match_start'
+    """)[0]
+    kept = (r["home_kept"] or 0) + (r["away_kept"] or 0)
+    minutes = max(1, last_minute - start + 1)
+    per_minute = (r["ball_changes"] or 0) / minutes
+    chaos = round(min(100, max(0, (per_minute - 1.2) / (5.0 - 1.2) * 100)))
+    return {
+        "from_minute": start, "to_minute": last_minute + 1,
+        "home_control_pct": round(100 * (r["home_kept"] or 0) / kept, 1) if kept else 50.0,
+        "away_control_pct": round(100 * (r["away_kept"] or 0) / kept, 1) if kept else 50.0,
+        "ball_changes": r["ball_changes"] or 0,
+        "chaos": chaos,
+    }
+
+
 # --- Put it all together ---------------------------------------------------------------
 
 def interpret(match_file: Path, up_to_minute: int = 999) -> dict:
@@ -281,6 +310,7 @@ def interpret(match_file: Path, up_to_minute: int = 999) -> dict:
         "timeline": rows(con, TIMELINE_SQL),
         "key_moments": find_key_moments(con, teams),
         "zones": zones(con, last or 0),
+        "pulse": pulse(con, last or 0),
     }
 
 

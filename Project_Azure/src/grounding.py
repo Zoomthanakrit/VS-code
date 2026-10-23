@@ -43,19 +43,20 @@ def collect_numbers(data: Any, found: set[float] | None = None) -> set[float]:
 
 
 def check(text: str, facts: Any) -> dict:
-    """Return {"ok": True/False, "bad_numbers": [...]} for one AI answer."""
+    """Return {"ok": True/False, "bad_numbers": [...], "checked": how many numbers were checked}."""
     allowed = collect_numbers(facts)
-    bad = []
+    bad, checked = [], 0
     for match in NUMBER.finditer(text):
         whole, decimals = match.group(1).replace(",", ""), match.group(2)
         value = float(whole + ("." + decimals if decimals else ""))
         if value in ALWAYS_OK:
             continue
+        checked += 1
         places = len(decimals) if decimals else 0
         tolerance = 0.5 * 10 ** -places + 1e-9  # "6" may stand for 6.4, "6.4" must be 6.35-6.45
         if not any(abs(a - value) <= tolerance for a in allowed):
             bad.append(match.group(0).strip())
-    return {"ok": not bad, "bad_numbers": bad}
+    return {"ok": not bad, "bad_numbers": bad, "checked": checked}
 
 
 if __name__ == "__main__":

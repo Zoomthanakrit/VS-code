@@ -26,6 +26,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 sys.path.insert(0, str(Path(__file__).parent))
+import director  # noqa: E402
 from explain import make_client  # noqa: E402
 from interpret import interpret  # noqa: E402
 from personalize import FOCUS, STYLE, Profile, build_overlay  # noqa: E402
@@ -40,6 +41,7 @@ if not MATCH_FILE.exists():
     sys.exit(f"{MATCH_FILE} not found. Run: python src/generate_match.py --seed 7")
 
 EVENTS = [json.loads(line) for line in MATCH_FILE.read_text(encoding="utf-8").splitlines() if line.strip()]
+TIMED_EVENTS = [{**e, "t": e["minute"] * 60 + e["second"]} for e in EVENTS if e["type"] != "match_start"]
 FULL = interpret(MATCH_FILE)
 
 try:
@@ -54,6 +56,15 @@ AI_LOCK = threading.Lock()  # one AI build at a time, so we never pay twice for 
 
 app = FastAPI(title="Match Story")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.middleware("http")
+async def no_stale_pages(request, call_next):
+    """Tell browsers to check for a newer page/script each time, so a new version shows up right away."""
+    response = await call_next(request)
+    if request.url.path == "/" or request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 @app.get("/")
@@ -86,7 +97,8 @@ def events() -> list[dict]:
 @lru_cache(maxsize=128)
 def state_at(minute: int) -> dict:
     s = interpret(MATCH_FILE, up_to_minute=minute)
-    return {"match": s["match"], "team_stats": s["team_stats"], "timeline": s["timeline"], "zones": s["zones"]}
+    return {"match": s["match"], "team_stats": s["team_stats"], "timeline": s["timeline"], "zones": s["zones"],
+            "pulse": s["pulse"]}
 
 
 @app.get("/api/state")
@@ -106,8 +118,11 @@ def overlays(minute: int = 999, mode: str = "fan", lang: str = "en", team: str |
                       favorite_player=player if player in players else None,
                       focus=focus or None)
     with AI_LOCK:
-        return build_overlay(MATCH_FILE, profile, extra=6, up_to_minute=max(1, minute),
-                             client=CLIENT, deployment=DEPLOYMENT)
+        result = build_overlay(MATCH_FILE, profile, extra=6, up_to_minute=max(1, minute),
+                               client=CLIENT, deployment=DEPLOYMENT)
+    director.plan(result["overlays"], TIMED_EVENTS)          # Director agent: when to show each card
+    result["agent_log"] = director.agent_log(result["overlays"], result["profile"])
+    return result
 
 
 if __name__ == "__main__":

@@ -31,6 +31,7 @@
   <main class="layout">
     <section class="stage">
       <div class="pitch-wrap">
+        <div class="pitch-box">
         <svg id="pitch" viewBox="-2 -2 109 72" role="img" aria-label="Pitch with recent events">
           <rect x="0" y="0" width="105" height="68" class="pitch-bg"/>
           <g class="lines">
@@ -45,19 +46,6 @@
           <g id="zoneLayer"></g>
           <g id="eventLayer"></g>
         </svg>
-        <div class="legend muted">
-          <span><i class="dot home"></i><span id="legHome">Home</span></span>
-          <span><i class="dot away"></i><span id="legAway">Away</span></span>
-          <span data-i18n="legend">line = pass · circle = shot · ring = goal · last 60 seconds</span>
-          <label class="zone-pick"><span data-i18n="zones">Zones</span>
-            <select id="zoneMode">
-              <option value="territory" data-i18n="wholeMatch">Whole match</option>
-              <option value="territory_last_10" data-i18n="last10">Last 10 min</option>
-              <option value="off" data-i18n="off">Off</option>
-            </select></label>
-        </div>
-        <div class="direction muted" id="direction"></div>
-
         <div id="card" class="card hidden" role="status" aria-live="assertive">
           <div class="card-stripe"></div>
           <div class="card-body">
@@ -71,6 +59,43 @@
             <div class="card-text" id="cardText"></div>
           </div>
         </div>
+        </div>
+        <div class="legend muted">
+          <span><i class="dot home"></i><span id="legHome">Home</span></span>
+          <span><i class="dot away"></i><span id="legAway">Away</span></span>
+          <span data-i18n="legend">line = pass · circle = shot · ring = goal · last 60 seconds</span>
+          <label class="zone-pick"><span data-i18n="zones">Zones</span>
+            <select id="zoneMode">
+              <option value="territory" data-i18n="wholeMatch">Whole match</option>
+              <option value="territory_last_10" data-i18n="last10">Last 10 min</option>
+              <option value="off" data-i18n="off">Off</option>
+            </select></label>
+        </div>
+        <div class="direction muted" id="direction"></div>
+
+        <div class="pulse">
+          <div class="pulse-head"><strong data-i18n="pulse">Match Pulse</strong>
+            <span class="muted"><span data-i18n="pulseSub">last 5 minutes</span> · <span id="pulseWindow"></span></span></div>
+          <div class="pulse-grid">
+            <div>
+              <div class="pulse-label"><span data-i18n="control">Control (who keeps the ball)</span>: <b id="ctrlWord"></b></div>
+              <div class="split big"><span class="h" id="ctrlHome"></span><span class="a" id="ctrlAway"></span></div>
+              <div class="pulse-vals"><span id="ctrlHomeVal"></span><span id="ctrlAwayVal"></span></div>
+            </div>
+            <div>
+              <div class="pulse-label"><span data-i18n="chaos">Chaos (how often the ball changes teams)</span>: <b id="chaosWord"></b></div>
+              <div class="chaos-track"><span id="chaosFill"></span></div>
+              <div class="pulse-vals"><span id="chaosHint"></span><span id="chaosVal"></span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="panel">
+        <h2 data-i18n="agents">AI agent team (live)</h2>
+        <div id="agentEmpty" class="muted" data-i18n="agentEmpty">Press ▶ to watch the agents work.</div>
+        <ol id="agentLog" class="agent-log"></ol>
       </div>
 
       <div class="panel">
