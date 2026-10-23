@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+  <!-- Top bar: score, clock and playback -->
   <header class="topbar">
     <div class="brand">Match Story <span class="muted" id="aiStatus"></span></div>
     <div class="scoreboard" aria-live="polite">
@@ -19,51 +20,76 @@
       <button id="playBtn" aria-label="Play">▶</button>
       <label class="muted"><span data-i18n="speed">Speed</span>
         <select id="speed">
-          <option value="30">0.5 min/s</option>
-          <option value="60" selected>1 min/s</option>
-          <option value="120">2 min/s</option>
+          <option value="3">Match in 30 min</option>
+          <option value="6">Match in 15 min</option>
+          <option value="9">Match in 10 min</option>
+          <option value="18" selected>Match in 5 min</option>
+          <option value="30">Match in 3 min</option>
+          <option value="60">Match in 90 s</option>
+          <option value="120">Match in 45 s</option>
         </select>
       </label>
       <input id="slider" type="range" min="0" max="5460" value="0" aria-label="Match time">
     </div>
   </header>
 
+  <!-- Your view: one flat row -->
+  <section class="viewbar">
+    <strong data-i18n="you">Your view</strong>
+    <label><span data-i18n="mode">Mode</span>
+      <select id="mode"><option value="fan">Fan</option><option value="analyst">Analyst</option></select></label>
+    <label><span data-i18n="language">Language</span>
+      <select id="lang"><option value="en">English</option><option value="th">ไทย (Thai)</option><option value="es">Español (Spanish)</option><option value="ar">العربية (Arabic)</option><option value="ja">日本語 (Japanese)</option><option value="zh">中文 (Chinese)</option></select></label>
+    <label><span data-i18n="team">Favorite team</span><select id="team"></select></label>
+    <label><span data-i18n="player">Favorite player</span><select id="player"></select></label>
+    <label><span data-i18n="focus">Focus</span>
+      <select id="focus">
+        <option value="">—</option><option value="shooting">Shooting</option>
+        <option value="passing">Passing</option><option value="pressing">Pressing</option>
+        <option value="possession">Possession</option>
+      </select></label>
+  </section>
+
   <main class="layout">
+    <!-- LEFT: the match -->
     <section class="stage">
       <div class="pitch-wrap">
         <div class="pitch-box">
-        <svg id="pitch" viewBox="-2 -2 109 72" role="img" aria-label="Pitch with recent events">
-          <rect x="0" y="0" width="105" height="68" class="pitch-bg"/>
-          <g class="lines">
-            <rect x="0" y="0" width="105" height="68"/>
-            <line x1="52.5" y1="0" x2="52.5" y2="68"/>
-            <circle cx="52.5" cy="34" r="9.15"/>
-            <rect x="0" y="13.84" width="16.5" height="40.32"/>
-            <rect x="88.5" y="13.84" width="16.5" height="40.32"/>
-            <rect x="0" y="24.84" width="5.5" height="18.32"/>
-            <rect x="99.5" y="24.84" width="5.5" height="18.32"/>
-          </g>
-          <g id="zoneLayer"></g>
-          <g id="eventLayer"></g>
-        </svg>
-        <div id="card" class="card hidden" role="status" aria-live="assertive">
-          <div class="card-stripe"></div>
-          <div class="card-body">
-            <div class="card-tags">
-              <span class="tag kind" id="cardKind"></span>
-              <span class="tag time" id="cardTime"></span>
-              <span class="tag foryou hidden" id="cardForYou">★ For you</span>
-              <span class="tag check" id="cardCheck"></span>
+          <svg id="pitch" viewBox="-2 -2 109 72" role="img" aria-label="Pitch with players and recent events">
+            <rect x="0" y="0" width="105" height="68" class="pitch-bg"/>
+            <g class="lines">
+              <rect x="0" y="0" width="105" height="68"/>
+              <line x1="52.5" y1="0" x2="52.5" y2="68"/>
+              <circle cx="52.5" cy="34" r="9.15"/>
+              <rect x="0" y="13.84" width="16.5" height="40.32"/>
+              <rect x="88.5" y="13.84" width="16.5" height="40.32"/>
+              <rect x="0" y="24.84" width="5.5" height="18.32"/>
+              <rect x="99.5" y="24.84" width="5.5" height="18.32"/>
+            </g>
+            <g id="zoneLayer"></g>
+            <g id="eventLayer"></g>
+            <g id="playerLayer"></g>
+            <g id="ballLayer"></g>
+          </svg>
+          <div id="replayBanner" class="replay-banner hidden">⟲ REPLAY</div>
+          <div id="card" class="card hidden" role="status" aria-live="assertive">
+            <div class="card-stripe"></div>
+            <div class="card-body">
+              <div class="card-tags">
+                <span class="tag kind" id="cardKind"></span>
+                <span class="tag time" id="cardTime"></span>
+                <span class="tag foryou hidden" id="cardForYou">★ For you</span>
+                <span class="tag check" id="cardCheck"></span>
+              </div>
+              <div class="card-headline" id="cardHeadline" dir="auto"></div>
+              <div class="card-text" id="cardText" dir="auto"></div>
             </div>
-            <div class="card-headline" id="cardHeadline" dir="auto"></div>
-            <div class="card-text" id="cardText" dir="auto"></div>
           </div>
-        </div>
         </div>
         <div class="legend muted">
           <span><i class="dot home"></i><span id="legHome">Home</span></span>
           <span><i class="dot away"></i><span id="legAway">Away</span></span>
-          <span data-i18n="legend">line = pass · circle = shot · ring = goal · last 60 seconds</span>
+          <span data-i18n="legend">dots = players · line = pass · circle = shot · ⚡ = sprint over 32 km/h</span>
           <label class="zone-pick"><span data-i18n="zones">Zones</span>
             <select id="zoneMode">
               <option value="territory" data-i18n="wholeMatch">Whole match</option>
@@ -88,22 +114,29 @@
               <div class="pulse-vals"><span id="chaosHint"></span><span id="chaosVal"></span></div>
             </div>
           </div>
+          <div class="replays hidden" id="replays">
+            <div class="replays-head" id="replaysHead"></div>
+            <div class="replay-list" id="replayList"></div>
+          </div>
         </div>
-
       </div>
 
-      <div class="panel ask">
-        <h2 data-i18n="askTitle">Ask the Match</h2>
-        <form id="askForm" class="ask-row">
-          <input id="askInput" maxlength="200" autocomplete="off" aria-label="Your question">
-          <button type="submit" id="askBtn" data-i18n="askBtn">Ask</button>
-        </form>
-        <div id="askChips" class="chips"></div>
-        <div id="askAnswer" class="ask-answer hidden" aria-live="polite">
-          <div class="ask-q" id="askQ"></div>
-          <div class="ask-a" id="askA" dir="auto"></div>
-          <div class="ask-meta"><span class="tag check" id="askCheck"></span><span class="muted" id="askTools"></span></div>
+      <!-- Player stats so far -->
+      <div class="panel">
+        <div class="panel-head">
+          <h2 data-i18n="playersTitle">Player stats so far</h2>
+          <div class="team-tabs" role="tablist">
+            <button id="tabHome" class="tab active" type="button"></button>
+            <button id="tabAway" class="tab" type="button"></button>
+          </div>
         </div>
+        <div class="table-scroll">
+          <table class="ptable players" id="playersTable">
+            <thead><tr id="playersHead"></tr></thead>
+            <tbody id="playersBody"></tbody>
+          </table>
+        </div>
+        <div class="muted small" data-i18n="physicalNote">Distance, sprints and top speed are synthetic tracking data.</div>
       </div>
 
       <div class="panel">
@@ -124,22 +157,19 @@
       </div>
     </section>
 
+    <!-- RIGHT: ask + all stats -->
     <aside class="side">
-      <div class="panel">
-        <h2 data-i18n="you">Your view</h2>
-        <div class="form">
-          <label><span data-i18n="mode">Mode</span>
-            <select id="mode"><option value="fan">Fan</option><option value="analyst">Analyst</option></select></label>
-          <label><span data-i18n="language">Language</span>
-            <select id="lang"><option value="en">English</option><option value="th">ไทย (Thai)</option><option value="es">Español (Spanish)</option><option value="ar">العربية (Arabic)</option><option value="ja">日本語 (Japanese)</option><option value="zh">中文 (Chinese)</option></select></label>
-          <label><span data-i18n="team">Favorite team</span><select id="team"></select></label>
-          <label><span data-i18n="player">Favorite player</span><select id="player"></select></label>
-          <label><span data-i18n="focus">Focus</span>
-            <select id="focus">
-              <option value="">—</option><option value="shooting">Shooting</option>
-              <option value="passing">Passing</option><option value="pressing">Pressing</option>
-              <option value="possession">Possession</option>
-            </select></label>
+      <div class="panel ask">
+        <h2 data-i18n="askTitle">Ask the Match</h2>
+        <form id="askForm" class="ask-row">
+          <input id="askInput" maxlength="200" autocomplete="off" aria-label="Your question">
+          <button type="submit" id="askBtn" data-i18n="askBtn">Ask</button>
+        </form>
+        <div id="askChips" class="chips"></div>
+        <div id="askAnswer" class="ask-answer hidden" aria-live="polite">
+          <div class="ask-q" id="askQ"></div>
+          <div class="ask-a" id="askA" dir="auto"></div>
+          <div class="ask-meta"><span class="tag check" id="askCheck"></span><span class="muted" id="askTools"></span></div>
         </div>
       </div>
 

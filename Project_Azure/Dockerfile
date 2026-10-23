@@ -7,9 +7,9 @@ ENV PYTHONUNBUFFERED=1 HOST=0.0.0.0 PORT=8000
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# App code + the synthetic match + pre-made AI cards (so the demo is instant and cheap)
+# App code + the synthetic match + tracking data + pre-made AI cards (so the demo is instant and cheap)
 COPY src/ src/
-COPY data/match_007.jsonl data/
+COPY data/*.jsonl data/
 COPY data/cache/ data/cache/
 
 # Run as a normal user, not root

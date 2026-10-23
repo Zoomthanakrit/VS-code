@@ -9,10 +9,10 @@ All teams, players, and events are synthetic (made up). No real match data or fo
 
 | Stage | Status | What it does |
 |---|---|---|
-| 1. Ingest | done | `src/generate_match.py` creates a synthetic match as a stream of events |
+| 1. Ingest | done | `src/generate_match.py` creates a synthetic match as a stream of events; `src/physical.py` adds synthetic tracking data (distance, sprints, top speed per player per minute) |
 | 2. Interpret | done | `src/interpret.py` turns events into team stats, player stats, a timeline, and key moments (DuckDB SQL) |
 | 3. Explain | done | `src/explain.py` asks an Azure AI Foundry model why each key moment matters (fan or analyst, English or Thai). `src/grounding.py` rejects any number the AI did not get from the stats |
-| 4. Render | done | `src/app.py` (FastAPI) + `src/static/`: match replay with a live pitch, live stats, momentum chart, and broadcast-style AI cards that pop up on time |
+| 4. Render | done | `src/app.py` (FastAPI) + `src/static/`: Football-Manager-style pitch with all 22 players, sprint tags, zones, Match Pulse, replays of key moments, player stats table, live stats, momentum chart, and broadcast-style AI cards that pop up on time |
 | 5. Personalize | done | `src/personalize.py`: fan or analyst, English or Thai, favorite team, favorite player (with a player card), focus metric. Outputs timed overlay JSON |
 
 ## Quick start

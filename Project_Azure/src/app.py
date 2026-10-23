@@ -30,6 +30,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import ask as qa  # noqa: E402
 import director  # noqa: E402
 import personalize  # noqa: E402
+import physical  # noqa: E402
 from explain import make_client  # noqa: E402
 from interpret import interpret  # noqa: E402
 from personalize import FOCUS, STYLE, Profile, build_overlay  # noqa: E402
@@ -44,6 +45,7 @@ if not MATCH_FILE.exists():
     sys.exit(f"{MATCH_FILE} not found. Run: python src/generate_match.py --seed 7")
 
 EVENTS = [json.loads(line) for line in MATCH_FILE.read_text(encoding="utf-8").splitlines() if line.strip()]
+PHYSICAL = physical.load(MATCH_FILE)  # distance, sprints, top speed per player per minute
 TIMED_EVENTS = [{**e, "t": e["minute"] * 60 + e["second"]} for e in EVENTS if e["type"] != "match_start"]
 FULL = interpret(MATCH_FILE)
 
@@ -97,11 +99,17 @@ def events() -> list[dict]:
     return [{k: e[k] for k in keep if k in e} for e in EVENTS if e["type"] != "match_start"]
 
 
+@app.get("/api/physical")
+def physical_data() -> list[dict]:
+    """Synthetic tracking data: one row per player per minute (the page adds them up as the match plays)."""
+    return PHYSICAL
+
+
 @lru_cache(maxsize=128)
 def state_at(minute: int) -> dict:
     s = interpret(MATCH_FILE, up_to_minute=minute)
     return {"match": s["match"], "team_stats": s["team_stats"], "timeline": s["timeline"], "zones": s["zones"],
-            "pulse": s["pulse"]}
+            "pulse": s["pulse"], "player_stats": s["player_stats"]}
 
 
 @app.get("/api/state")

@@ -5,7 +5,10 @@ const SVG = "http://www.w3.org/2000/svg";
 const END_T = 91 * 60;
 
 const TEXT = {
-  en: { speed: "Speed", legend: "line = pass · circle = shot · ring = goal · last 60 seconds", feed: "Story so far",
+  en: { speed: "Speed", legend: "dots = players · line = pass · circle = shot · ⚡ = sprint over 32 km/h", feed: "Story so far",
+        playersTitle: "Player stats so far", physicalNote: "Distance, sprints and top speed are synthetic tracking data.",
+        cols: ["#", "Player", "Pos", "Passes", "Pass %", "Shots", "Goals", "xG", "Ball wins", "Pressures", "Km", "Sprints", "Top km/h"],
+        replayLive: "Replay a moment", replayFull: "Full time: replay the key moments", replayBanner: "REPLAY",
         thinking: "AI commentator is writing…", recap: "Match recap", you: "Your view", mode: "Mode",
         language: "Language", team: "Favorite team", player: "Favorite player", focus: "Focus", stats: "Match stats",
         momentum: "Momentum (xG per 15 min)", playercard: "Player card", passes: "Passes", shots: "Shots",
@@ -26,7 +29,10 @@ const TEXT = {
                       pass_accuracy_pct: "Pass accuracy %", pressures: "Pressures", tackles_won: "Tackles won" },
         kinds: { goal: "Goal", big_chance_missed: "Big chance", great_save: "Great save", yellow_card: "Yellow card",
                  pressing_spell: "Pressing", momentum_swing: "Momentum", fastest_shot: "Fastest shot" } },
-  th: { speed: "ความเร็ว", legend: "เส้น = ส่งบอล · วงกลม = ยิง · วงแหวน = ประตู · 60 วินาทีล่าสุด", feed: "เรื่องราวของเกม",
+  th: { speed: "ความเร็ว", legend: "จุด = นักเตะ · เส้น = ส่งบอล · วงกลม = ยิง · ⚡ = สปรินต์เกิน 32 กม./ชม.", feed: "เรื่องราวของเกม",
+        playersTitle: "สถิตินักเตะจนถึงตอนนี้", physicalNote: "ระยะวิ่ง สปรินต์ และความเร็วสูงสุด เป็นข้อมูลติดตามแบบจำลอง",
+        cols: ["#", "นักเตะ", "ตำแหน่ง", "ส่งบอล", "สำเร็จ %", "ยิง", "ประตู", "xG", "แย่งบอล", "เพรส", "กม.", "สปรินต์", "เร็วสุด"],
+        replayLive: "ดูรีเพลย์", replayFull: "จบเกม: ดูรีเพลย์จังหวะสำคัญ", replayBanner: "รีเพลย์",
         thinking: "AI กำลังเขียนบทบรรยาย…", recap: "สรุปเกม", you: "มุมมองของคุณ", mode: "โหมด",
         language: "ภาษา", team: "ทีมโปรด", player: "นักเตะคนโปรด", focus: "สนใจเรื่อง", stats: "สถิติการแข่งขัน",
         momentum: "โมเมนตัม (xG ทุก 15 นาที)", playercard: "การ์ดนักเตะ", passes: "ส่งบอล", shots: "ยิง",
@@ -50,7 +56,8 @@ const TEXT = {
 };
 
 const S = {
-  t: 0, playing: false, speed: 60, match: null, events: [], overlays: new Map(), shown: new Set(),
+  t: 0, playing: false, speed: 18, match: null, events: [], overlays: new Map(), shown: new Set(),
+  physical: [], playerStats: [], tableSide: "home", sortCol: 10, sortDesc: true, replay: null,
   queue: [], cardTimer: null, lastMinute: -1, loadingOverlays: false, overlaysFor: -1, profileVersion: 0,
 };
 
@@ -71,14 +78,20 @@ function profileQuery() {
 async function start() {
   S.match = await (await fetch("/api/match")).json();
   S.events = (await (await fetch("/api/events")).json()).map((e) => ({ ...e, t: e.minute * 60 + e.second }));
+  S.physical = await (await fetch("/api/physical")).json();
   $("aiStatus").textContent = `· AI ${S.match.ai}`;
+  buildPlayers();
+  $("tabHome").textContent = S.match.home_team;
+  $("tabAway").textContent = S.match.away_team;
+  $("tabHome").onclick = () => { S.tableSide = "home"; renderPlayerTable(); };
+  $("tabAway").onclick = () => { S.tableSide = "away"; renderPlayerTable(); };
   for (const id of ["homeName", "legHome"]) $(id).textContent = S.match.home_team;
   for (const id of ["awayName", "legAway"]) $(id).textContent = S.match.away_team;
   fillPickers();
   applyLanguage();
 
   $("playBtn").onclick = () => { S.playing = !S.playing; $("playBtn").textContent = S.playing ? "⏸" : "▶"; };
-  $("speed").onchange = (e) => (S.speed = Number(e.target.value));
+  $("speed").onchange = (e) => { if (!S.replay) S.speed = Number(e.target.value); };
   $("slider").oninput = (e) => seek(Number(e.target.value));
   $("zoneMode").onchange = () => renderZones(S.zones);
   $("askForm").onsubmit = (e) => { e.preventDefault(); askQuestion(); };
@@ -168,7 +181,60 @@ function tick() {
   if (!S.playing) return;
   S.t = Math.min(END_T, S.t + S.speed * 0.1);
   if (S.t >= END_T) { S.playing = false; $("playBtn").textContent = "▶"; }
+  if (S.replay && S.t >= S.replay.end) finishReplay();
   update();
+}
+
+// ---------- Replays ----------
+const REPLAY_KINDS = ["goal", "big_chance_missed", "great_save"];
+
+function startReplay(o) {
+  if (S.replay) return;
+  S.replay = { end: o.t + 10, back: S.t, wasPlaying: S.playing };
+  $("replayBanner").textContent = `⟲ ${T().replayBanner} · ${o.show_at}`;
+  $("replayBanner").classList.remove("hidden");
+  seek(Math.max(0, o.t - 12));
+  S.speed = 6; // slow motion
+  S.playing = true;
+  $("playBtn").textContent = "⏸";
+}
+
+function finishReplay() {
+  const r = S.replay;
+  S.playing = false;
+  setTimeout(() => {
+    S.replay = null;
+    S.speed = Number($("speed").value);
+    $("replayBanner").classList.add("hidden");
+    seek(r.back);
+    S.playing = r.wasPlaying && r.back < END_T;
+    $("playBtn").textContent = S.playing ? "⏸" : "▶";
+  }, 1500);
+}
+
+function renderReplays() {
+  const items = [...S.overlays.values()]
+    .filter((o) => REPLAY_KINDS.includes(o.kind) && o.t <= (S.replay ? S.replay.back : S.t))
+    .sort((a, b) => a.t - b.t);
+  const box = $("replays");
+  box.classList.toggle("hidden", items.length === 0);
+  const tx = T();
+  const full = (S.replay ? S.replay.back : S.t) >= 90 * 60;
+  box.classList.toggle("full", full);
+  $("replaysHead").textContent = full ? tx.replayFull : tx.replayLive;
+  const list = $("replayList");
+  const sig = items.map(key).join(",") + full + $("lang").value;
+  if (list.dataset.sig === sig) return;
+  list.dataset.sig = sig;
+  list.innerHTML = "";
+  for (const o of items) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = `replay-btn ${sideOf(o.team)}`;
+    b.textContent = `▶ ${o.show_at} ${tx.kinds[o.kind] || o.kind}${o.player ? " · " + o.player : ""}`;
+    b.onclick = () => startReplay(o);
+    list.append(b);
+  }
 }
 
 function seek(t) {
@@ -193,6 +259,7 @@ function update() {
   loadOverlays(minute);
   queueDueCards();
   renderAgentLog();
+  renderReplays();
 }
 
 // ---------- Agent team log ----------
@@ -234,6 +301,58 @@ async function loadState(minute) {
   S.zones = s.zones;
   renderZones(s.zones);
   renderPulse(s.pulse);
+  S.playerStats = s.player_stats || [];
+  renderPlayerTable();
+}
+
+// ---------- Player stats table (events + synthetic tracking) ----------
+function renderPlayerTable() {
+  const tx = T();
+  $("tabHome").classList.toggle("active", S.tableSide === "home");
+  $("tabAway").classList.toggle("active", S.tableSide === "away");
+  const minute = Math.floor(S.t / 60);
+  const phys = {};
+  for (const r of S.physical) {
+    if (r.minute > minute) continue;
+    const p = (phys[r.player] = phys[r.player] || { m: 0, sprints: 0, top: 0 });
+    p.m += r.distance_m;
+    p.sprints += r.sprints;
+    p.top = Math.max(p.top, r.top_speed_kmh);
+  }
+  const rows = S.match.lineups[S.tableSide].map((pl) => {
+    const st = S.playerStats.find((x) => x.player === pl.name) || {};
+    const ph = phys[pl.name] || { m: 0, sprints: 0, top: 0 };
+    return [pl.number, pl.name, pl.position, st.passes || 0, st.pass_accuracy_pct ?? "–", st.shots || 0, st.goals || 0,
+            st.xg || 0, st.ball_wins || 0, st.pressures || 0, Number((ph.m / 1000).toFixed(1)), ph.sprints, ph.top || "–"];
+  });
+  const c = S.sortCol;
+  rows.sort((a, b) => {
+    const x = typeof a[c] === "number" ? a[c] : -1, y = typeof b[c] === "number" ? b[c] : -1;
+    if (c === 1 || c === 2) return S.sortDesc ? String(b[c]).localeCompare(a[c]) : String(a[c]).localeCompare(b[c]);
+    return S.sortDesc ? y - x : x - y;
+  });
+  const head = $("playersHead");
+  head.innerHTML = "";
+  tx.cols.forEach((label, i) => {
+    const th = document.createElement("th");
+    th.textContent = label + (i === c ? (S.sortDesc ? " ▼" : " ▲") : "");
+    th.className = i === 1 || i === 2 ? "l" : "";
+    th.onclick = () => { S.sortDesc = S.sortCol === i ? !S.sortDesc : true; S.sortCol = i; renderPlayerTable(); };
+    head.append(th);
+  });
+  const body = $("playersBody");
+  body.innerHTML = "";
+  for (const r of rows) {
+    const tr = document.createElement("tr");
+    if (r[1] === $("player").value) tr.className = "fav";
+    r.forEach((v, i) => {
+      const td = document.createElement("td");
+      td.textContent = i === 10 ? v.toFixed(1) : v;
+      if (i === 1 || i === 2) td.className = "l";
+      tr.append(td);
+    });
+    body.append(tr);
+  }
 }
 
 // ---------- Match Pulse: control vs chaos (last 5 minutes) ----------
@@ -363,11 +482,81 @@ function showTip(e, text) {
   tip.style.top = `${e.clientY - box.top - 34}px`;
 }
 
+// ---------- Players on the pitch (Football Manager style) ----------
+// Each team stands in a 4-3-3 shape. The whole team slides with the ball, and the players
+// involved in the latest actions move to where the action happened.
+const SHAPE = [[6, 34], [22, 58], [20, 42], [20, 26], [22, 10], [38, 34], [46, 50], [46, 18], [64, 56], [68, 34], [64, 12]];
+
+function buildPlayers() {
+  const layer = $("playerLayer");
+  layer.innerHTML = "";
+  S.players = {};
+  for (const side of ["home", "away"]) {
+    S.match.lineups[side].forEach((p, i) => {
+      const g = document.createElementNS(SVG, "g");
+      g.setAttribute("class", `pl ${side}`);
+      g.innerHTML = `<circle r="1.7"></circle><text class="num" text-anchor="middle" dy="0.6"></text>
+        <text class="tag" text-anchor="middle" y="-2.6"></text>`;
+      g.querySelector(".num").textContent = p.number;
+      const title = document.createElementNS(SVG, "title");
+      title.textContent = `${p.number}. ${p.name} (${p.position})`;
+      g.append(title);
+      layer.append(g);
+      S.players[p.name] = { g, side, index: i, name: p.name, x: 0, y: 0 };
+    });
+  }
+}
+
+function placePlayers(recent) {
+  if (!S.players) return;
+  const flip = (e, x, y) => (e.team_side === "away" ? [105 - x, 68 - y] : [x, y]);
+  const last = recent.filter((e) => e.x != null).slice(-3);
+  let ball = [52.5, 34];
+  const special = {};
+  for (const e of last) {
+    const [x, y] = flip(e, e.x, e.y);
+    ball = [x, y];
+    if (e.player) special[e.player] = [x, y];
+    if (e.type === "pass" && e.outcome === "complete" && e.recipient) {
+      const [ex, ey] = flip(e, e.end_x, e.end_y);
+      special[e.recipient] = [ex, ey];
+      ball = [ex, ey];
+    }
+  }
+  const dx = (ball[0] - 52.5) * 0.5, dy = (ball[1] - 34) * 0.2;
+  const minute = Math.floor(S.t / 60);
+  const fast = S.speedTags && S.speedTags[minute] ? S.speedTags[minute] : {};
+  const fav = $("player").value;
+  const carrier = last.length ? (last[last.length - 1].recipient || last[last.length - 1].player) : null;
+  for (const p of Object.values(S.players)) {
+    let [x, y] = SHAPE[p.index];
+    if (p.side === "away") { x = 105 - x; y = 68 - y + (p.index ? 4 : 0); } // small offset so shirts don't overlap
+    if (p.index === 0) { x += dx * 0.15; } else { x += dx; y += dy; }
+    if (special[p.name]) [x, y] = special[p.name];
+    x = Math.min(103.5, Math.max(1.5, x));
+    y = Math.min(66.5, Math.max(1.5, y));
+    p.g.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px)`;
+    p.g.classList.toggle("carrier", p.name === carrier);
+    p.g.classList.toggle("fav", p.name === fav);
+    const tag = p.g.querySelector(".tag");
+    tag.textContent = fast[p.name] ? `⚡${fast[p.name]}` : p.name === carrier ? p.name.split(" ").slice(-1)[0] : "";
+  }
+  const b = $("ballLayer");
+  b.innerHTML = `<circle class="ball" r="0.9" cx="${ball[0].toFixed(2)}" cy="${ball[1].toFixed(2)}"></circle>`;
+}
+
 // ---------- Pitch ----------
 function drawPitch() {
+  if (!S.speedTags) {
+    S.speedTags = {};
+    for (const r of S.physical) {
+      if (r.top_speed_kmh >= 32) (S.speedTags[r.minute] = S.speedTags[r.minute] || {})[r.player] = r.top_speed_kmh;
+    }
+  }
   const layer = $("eventLayer");
   layer.innerHTML = "";
-  const recent = S.events.filter((e) => e.t <= S.t && e.t > S.t - 60);
+  const recent = S.events.filter((e) => e.t <= S.t && e.t > S.t - 20);
+  placePlayers(recent);
   const flip = (e, x, y) => (e.team_side === "away" ? [105 - x, 68 - y] : [x, y]);
   let ball = null;
   for (const e of recent) {
@@ -394,11 +583,6 @@ function drawPitch() {
     } else {
       ball = [x, y];
     }
-  }
-  if (ball) {
-    const b = document.createElementNS(SVG, "circle");
-    Object.entries({ cx: ball[0], cy: ball[1], r: 0.9, class: "ball" }).forEach(([k, v]) => b.setAttribute(k, v));
-    layer.append(b);
   }
 }
 
@@ -521,6 +705,7 @@ function profileChanged() {
   S.agentLog = [];
   S.logCount = -1;
   S.lastMinute = -1; // refresh stat labels in the new language
+  $("replayList").dataset.sig = "";
   update();
 }
 
